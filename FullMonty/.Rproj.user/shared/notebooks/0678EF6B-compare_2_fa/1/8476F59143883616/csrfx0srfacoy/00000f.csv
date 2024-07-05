@@ -1,0 +1,5 @@
+"0","    P11 <- as.geofield(do.call(transformation, list(scale*(P1 + 0/(1e20-P1)) + offset)))
+"
+"2","Error in as.geodomain(domain) : 
+  argument ""domain"" is missing, with no default
+"

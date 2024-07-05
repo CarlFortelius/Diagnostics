@@ -1,0 +1,132 @@
+---
+title: "Untitled"
+author: "Carl Fortelius"
+date: "2023-01-17"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+
+```{r libraries}
+## -----------------------------------------------------------------------------
+library(here)
+library(harp)
+library(dplyr)
+library(forcats)
+library(scico)
+library(Rfa)
+library(stringr)
+```
+
+
+```{r define functions}
+#print(args[1])
+#print(args[2:length(args)])i
+
+    my_plot_chart <- function(pv, label, title, zoom_radius, zoom_centre) {
+    #png(filename =  paste(label,"_chart.png",sep=""),
+        #width = 700, height = 700, units = "px") #, pointsize = 12,
+     #bg = "white",  res = NA, ...,
+    #type = c("cairo", "cairo-png", "Xlib", "quartz"), antialias)
+    #plot_field(pv ,breaks=c(0,0.03,0.06,0.09,0.12,0.15,0.18,0.21) )
+    if (zoom_radius == 0){
+	    plot_field(pv,title=title)
+    } else {
+            plot_field(pv,zoom_centre=zoom_centre, zoom_radius=zoom_radius,
+	    title=title)}
+
+    #dev.off()
+    print(paste("created ", paste(label,"_chart.png",sep="")))
+    }
+
+
+
+
+
+    my_plot_histo <- function(pv,label,zoom_radius,lonc,latc){
+    # Deal with sub-domain:
+    if (zoom_radius == 0){ 
+	hisvar <- pv
+    } else {         
+        zc <- round(meteogrid::point.index(pv, lonc,latc))
+        ix1 <- zc$i-zoom_radius
+        ix2 <- zc$i+zoom_radius
+        jy1 <- zc$j-zoom_radius
+        jy2 <- zc$j+zoom_radius
+	hisvar <- pv[ix1:ix2,jy1:jy2] 
+    }
+    #png(paste(label,"_histo.png",sep=""))
+    #title <- paste(
+    #  attr(T2M[[i]],"info")$name,
+    #  "\n",
+    #  format(attr(T2M[[i]], "info")$time$basedate, "%H:%M %d %b %Y"),
+    #  "+",
+    #  paste0(
+    #    attr(T2M[[i]],"info")$time$leadtime, attr(T2M[[i]],"info")$time$stepUnit
+    #  )
+    #  )
+    hisdat <- data.frame(values = c(as.vector(hisvar)))
+
+    histo <- ggplot(hisdat, aes(x = values)) +                       # Draw overlaying histogram
+           geom_histogram(position = "identity", alpha = 0.2, bins = 50)	
+    #hist(T2M[[i]],col='lightcyan',main=title)
+    print(histo)
+    print(paste("created ",paste(label,"_histo.png",sep=""), sep=""))
+		#dev.off()
+     }
+```
+
+```{r controlling keys}
+# Controlling keys, may contain wild cards
+#YYYY <- args[1]; MM <- args[2]; DD <- args[3];  HH <- args[4]; MBR <- args[5]; file <- args[6]
+#ctrl <- paste(YYYY,MM,DD,HH,MBR,file,sep="/")
+data_root <- "/home/forteliu/Bologna/hm_home/cy46_AUSTRIA500_Patrick/archive" 
+file_key <- paste(data_root,"2022/07/01/00/ICMSHHARM+000[369].sfx",sep="/")
+#file_key <- "/home/forteliu/lustre/tmp/cooper/harmonie/MNWC_prod/20220902_08/very_first_guess"
+#file_key <- "/home/forteliu/DataFiles/HERCULES/HERC151/ICMSHHARM+0000.sfx"
+files <- system(paste("ls", file_key), intern=TRUE) #; print(files_1)
+
+# FA-names of two parameters:
+fa_names <- c("CLSTEMPERATURE")
+fa_names <- c("SFX.T2M")
+
+offset <- 0
+scale <- 1 #1./86400.
+zclon <- 25
+zclat <- 60.5
+zrad <- 0
+```
+
+```{r do the plots}
+for (file  in files){
+for (name in fa_names){
+# read in and get rid of missing data integer code	
+   
+  pv <- read_grid( file, str_pad(paste(name), 16, 'right', pad=' '), file_format = "fa")
+  pv <- scale*(pv + 0/(1e20-pv)) + offset
+
+# Deal with titles and labels... 
+    #print(attr(P1,"info"))
+    label <- paste(trimws(attr(pv, "info")$name), paste(format(attr(pv, "info")$time$basedate,"%Y%m%d%H:%M"),
+			   attr(pv,"info")$time$forecast, sep=""), sep="@")
+
+# Plot chart of pv
+    my_plot_chart(pv, label, "auto",zrad, c(zclon,zclat))
+# Plot histogram of pv
+    my_plot_histo(pv,label,zrad,zclon,zclat)
+}
+}
+
+```
+
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

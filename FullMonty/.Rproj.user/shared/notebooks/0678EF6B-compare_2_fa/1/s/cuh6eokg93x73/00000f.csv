@@ -1,0 +1,7 @@
+"0",""
+"0","# Plot charts of P1, P2, and F(P1,P2)"
+"0","    my_plot_chart(P1, label_1, ""auto"",zrad, c(zclon,zclat))"
+"1","[1]"
+"1"," ""created  @NULL_chart.png"""
+"1","
+"

@@ -1,0 +1,6 @@
+"0","    if (!identical(attributes(P1)$domain, attributes(P2)$domain)){
+    P1 <- regrid(P1,P2)
+    }
+"
+"2","Warning: 2017 points are outside of the domain.
+"

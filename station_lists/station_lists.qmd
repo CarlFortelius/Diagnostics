@@ -1,0 +1,71 @@
+---
+title: "station_lists"
+---
+
+## Quarto
+
+Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+
+```{r}
+#| echo: false
+#| 
+#install.packages("sp")
+library(harpIO)
+library(sp)
+library(here)
+
+```
+
+```{r}
+#| echo: false
+
+source(here("data", "selections.R"))
+
+monitor_station_list = function(station_list, this_list){
+  if ("CBOX_ACTIVE" %in% names(this_list)){
+    if (this_list$CBOX_ACTIVE){ 
+      #sapply(this_list, function(x){print(x)})
+      filter(station_list,
+             (this_list$CBOX_WLON < lon & lon < this_list$CBOX_ELON) &
+               (this_list$CBOX_SLAT < lat & lat < this_list$CBOX_NLAT)
+      )
+    }
+  } else if ("LPOLY" %in% names(this_list)){
+    if (this_list$LPOLY) {
+      polygon <- read.table(
+        here("data", this_list$POLYFILE), #
+        skip = 1, 
+        sep = "", 
+        header = FALSE)
+      filter(station_list,
+             point.in.polygon(lon, lat, polygon$V2, polygon$V1) > 0
+      )
+    }
+  } else if ("STNLIST" %in% names(this_list)){
+    filter(station_list,
+           (SID %in% this_list$STNLIST |
+            this_list$STNLIST == 0))
+  } 
+}
+#"master-location-identifier-database-202401_standard.csv"
+
+master_list <- function(){
+  read.table(
+    "https://www.weathergraphics.com/identifiers/master-location-identifier-database-202401_standard.csv", 
+    skip = 5, 
+    sep = ",",
+    quote= c('"',"'"),
+    comment.char = "",
+    header = TRUE)
+  }
+```
+
+```{r}
+  monitor_station_list(
+    station_list,
+    this_list = monitor_selections$Finland)
+
+#csv <-  "master-location-identifier-database-202401_standard.csv"
+
+master_list()|> filter(country == "Finland") -> buf
+```

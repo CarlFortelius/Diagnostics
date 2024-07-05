@@ -1,5 +1,5 @@
 ---
-title: "sitecomparator"
+title: "Sitecomparator"
 author: "Carl Fortelius"
 format: html
 editor: visual

@@ -1,0 +1,5 @@
+"0","    gridpoint <- try(get_grid_point_norms(HM_DATE))
+"
+"2","Error in get_grid_point_norms(HM_DATE) : 
+  could not find function ""get_grid_point_norms""
+"

@@ -1,0 +1,232 @@
+"0","# Run the application "
+"0","shinyApp(ui = ui, server = server)"
+"2","
+Listening on http://127.0.0.1:7056
+"
+"1","[1]"
+"1"," ""Loading, be patient..."""
+"1","
+"
+"2","Error : '/ec/res4/scratch/sbjb/hm_home/mc_preop_baseline/archive/logHM_Date_2023090400.html' does not exist.
+"
+"1","[1]"
+"1"," ""Skipping bad or non-existing file logHM_Date_2023090400.html"""
+"1","
+"
+"2","Error : '/ec/res4/scratch/sbjb/hm_home/mc_preop_baseline/archive/logHM_Date_2023090403.html' does not exist.
+"
+"1","[1]"
+"1"," ""Skipping bad or non-existing file logHM_Date_2023090403.html"""
+"1","
+"
+"2","Error : '/ec/res4/scratch/sbjb/hm_home/mc_preop_baseline/archive/logHM_Date_2023090406.html' does not exist.
+"
+"1","[1]"
+"1"," ""Skipping bad or non-existing file logHM_Date_2023090406.html"""
+"1","
+"
+"2","Error : '/ec/res4/scratch/sbjb/hm_home/mc_preop_baseline/archive/logHM_Date_2023090409.html' does not exist.
+"
+"1","[1]"
+"1"," ""Skipping bad or non-existing file logHM_Date_2023090409.html"""
+"1","
+"
+"2","Error : '/ec/res4/scratch/sbjb/hm_home/mc_preop_baseline/archive/logHM_Date_2023090412.html' does not exist.
+"
+"1","[1]"
+"1"," ""Skipping bad or non-existing file logHM_Date_2023090412.html"""
+"1","
+"
+"2","Error : '/ec/res4/scratch/sbjb/hm_home/mc_preop_baseline/archive/logHM_Date_2023090415.html' does not exist.
+"
+"1","[1]"
+"1"," ""Skipping bad or non-existing file logHM_Date_2023090415.html"""
+"1","
+"
+"2","Error : '/ec/res4/scratch/sbjb/hm_home/mc_preop_baseline/archive/logHM_Date_2023090418.html' does not exist.
+"
+"1","[1]"
+"1"," ""Skipping bad or non-existing file logHM_Date_2023090418.html"""
+"1","
+"
+"2","Error : '/ec/res4/scratch/sbjb/hm_home/mc_preop_baseline/archive/logHM_Date_2023090421.html' does not exist.
+"
+"1","[1]"
+"1"," ""Skipping bad or non-existing file logHM_Date_2023090421.html"""
+"1","
+"
+"2","Warning: Error in max: invalid 'type' (list) of argument"
+"2","  99: [34m[1mrenderText [#57][22m[39m
+"
+"2",""
+"2","  98: [37mfunc[39m
+"
+"2",""
+"2","  85: [37mrenderFunc[39m
+"
+"2",""
+"2","  84: [37moutput$update_info[39m
+"
+"2",""
+"2","   3: [37mrunApp[39m
+"
+"2",""
+"2","   2: [37mprint.shiny.appobj[39m
+"
+"2",""
+"2","   1: [37m<Anonymous>[39m
+"
+"1","[1]"
+"1"," ""Loading, be patient..."""
+"1","
+"
+"2","Error in HM_DATE[[idx]] : subscript out of bounds
+"
+"2","Error in HM_DATE[[idx]] : subscript out of bounds
+"
+"2","Warning: Error in if: argument is of length zero"
+"2","  106: [34m[1mFUN [#7][22m[39m
+"
+"2",""
+"2","  105: [37mlapply[39m
+"
+"2",""
+"2","   99: [34m[1mrenderText [#50][22m[39m
+"
+"2",""
+"2","   98: [37mfunc[39m
+"
+"2",""
+"2","   85: [37mrenderFunc[39m
+"
+"2",""
+"2","   84: [37moutput$update_info[39m
+"
+"2",""
+"2","    3: [37mrunApp[39m
+"
+"2",""
+"2","    2: [37mprint.shiny.appobj[39m
+"
+"2",""
+"2","    1: [37m<Anonymous>[39m
+"
+"1","[1]"
+"1"," ""Loading, be patient..."""
+"1","
+"
+"2","Error in HM_DATE[[idx]] : subscript out of bounds
+"
+"2","Error in HM_DATE[[idx]] : subscript out of bounds
+"
+"2","Warning: Error in if: argument is of length zero"
+"2","  106: [34m[1mFUN [#7][22m[39m
+"
+"2",""
+"2","  105: [37mlapply[39m
+"
+"2",""
+"2","   99: [34m[1mrenderText [#50][22m[39m
+"
+"2",""
+"2","   98: [37mfunc[39m
+"
+"2",""
+"2","   85: [37mrenderFunc[39m
+"
+"2",""
+"2","   84: [37moutput$update_info[39m
+"
+"2",""
+"2","    3: [37mrunApp[39m
+"
+"2",""
+"2","    2: [37mprint.shiny.appobj[39m
+"
+"2",""
+"2","    1: [37m<Anonymous>[39m
+"
+"1","[1]"
+"1"," ""Loading, be patient..."""
+"1","
+"
+"2","Error : '/ec/res4/scratch/sbjb/hm_home/mc_preop_baseline/archive/log/HM_Date_2023090400.htmlf' does not exist.
+"
+"1","[1]"
+"1"," ""Skipping bad or non-existing file HM_Date_2023090400.htmlf"""
+"1","
+"
+"2","Error : '/ec/res4/scratch/sbjb/hm_home/mc_preop_baseline/archive/log/HM_Date_2023090406.htmlf' does not exist.
+"
+"1","[1]"
+"1"," ""Skipping bad or non-existing file HM_Date_2023090406.htmlf"""
+"1","
+"
+"2","Error : '/ec/res4/scratch/sbjb/hm_home/mc_preop_baseline/archive/log/HM_Date_2023090412.htmlf' does not exist.
+"
+"1","[1]"
+"1"," ""Skipping bad or non-existing file HM_Date_2023090412.htmlf"""
+"1","
+"
+"2","Error : '/ec/res4/scratch/sbjb/hm_home/mc_preop_baseline/archive/log/HM_Date_2023090418.htmlf' does not exist.
+"
+"1","[1]"
+"1"," ""Skipping bad or non-existing file HM_Date_2023090418.htmlf"""
+"1","
+"
+"2","Warning: Error in max: invalid 'type' (list) of argument"
+"2","  99: [34m[1mrenderText [#57][22m[39m
+"
+"2",""
+"2","  98: [37mfunc[39m
+"
+"2",""
+"2","  85: [37mrenderFunc[39m
+"
+"2",""
+"2","  84: [37moutput$update_info[39m
+"
+"2",""
+"2","   3: [37mrunApp[39m
+"
+"2",""
+"2","   2: [37mprint.shiny.appobj[39m
+"
+"2",""
+"2","   1: [37m<Anonymous>[39m
+"
+"1","[1]"
+"1"," ""Loading, be patient..."""
+"1","
+"
+"2","Error in HM_DATE[[idx]] : subscript out of bounds
+"
+"2","Error in HM_DATE[[idx]] : subscript out of bounds
+"
+"2","Warning: Error in if: argument is of length zero"
+"2","  106: [34m[1mFUN [#7][22m[39m
+"
+"2",""
+"2","  105: [37mlapply[39m
+"
+"2",""
+"2","   99: [34m[1mrenderText [#50][22m[39m
+"
+"2",""
+"2","   98: [37mfunc[39m
+"
+"2",""
+"2","   85: [37mrenderFunc[39m
+"
+"2",""
+"2","   84: [37moutput$update_info[39m
+"
+"2",""
+"2","    3: [37mrunApp[39m
+"
+"2",""
+"2","    2: [37mprint.shiny.appobj[39m
+"
+"2",""
+"2","    1: [37m<Anonymous>[39m
+"

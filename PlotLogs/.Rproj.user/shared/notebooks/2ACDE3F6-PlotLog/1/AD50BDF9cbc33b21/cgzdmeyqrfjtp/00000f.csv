@@ -1,0 +1,8 @@
+"0","#Read html logfile produced by Harmonie-arome into memory as text. Files can be local paths or urls. Not used, can be handy for debugging etc."
+"0","#logfile <- '/home/forteliu/Bologna/hm_home/cy46_NYLAND750/archive/log/HM_Date_2022081500.html'"
+"0","if (FALSE) {"
+"0","logfile <- ""https://metcoop.smhi.se/monitoring/msms/data/meps/HM_Date_2023030912_1_se.html"""
+"0","logfile <- ""/ec/res4/scratch/sbjb/hm_home/mc_preop_baseline/archive/log/HM_Date_2023090412.html"""
+"0","HM_DATE <- unlist( strsplit(html_text(read_html(x = logfile, encoding=""UTF-8"")), '\n'))"
+"0","specimen <- get_cost_functions(HM_DATE)"
+"0","}"

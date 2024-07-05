@@ -1,0 +1,33 @@
+{
+    "id": "2BC818E6",
+    "path": "~/rproj/PlotLogs/PlotLog.qmd",
+    "project_path": "PlotLog.qmd",
+    "type": "quarto_markdown",
+    "hash": "0",
+    "contents": "",
+    "dirty": true,
+    "created": 1701618582667.0,
+    "source_on_save": false,
+    "relative_order": 1,
+    "properties": {
+        "rmdVisualMode": "true",
+        "rmdVisualWrapConfigured": "true",
+        "source_window_id": "",
+        "Source": "Source",
+        "docOutlineVisible": "1",
+        "rmdVisualCollapsedChunks": "559,1081,3619,5029,9259,10935,12087",
+        "rmdVisualModeLocation": "10412:1060",
+        "cursorPosition": "240,0",
+        "scrollLine": "0",
+        "last_setup_crc32": "cbc33b217368bc3c",
+        "docOutlineSize": "110"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1700639639,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1701618627220,
+    "read_only": false,
+    "read_only_alternatives": []
+}

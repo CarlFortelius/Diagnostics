@@ -1,0 +1,395 @@
+---
+title: "Mastverstats"
+author: "Carl Fortelius"
+format: html
+editor: visual
+toc: false  # Automatically generates a TOC
+toc-depth: 3
+editor_options: 
+  chunk_output_type: console
+execute:
+  echo: false
+---
+
+## 
+
+```{r, message=FALSE, "Libraries", results='hide'}
+#| echo: false
+library("harp")
+library("tidyverse")
+library("here")
+library("argparse")
+library(zoo)
+library("htmltools")
+```
+
+Setting up the environment
+
+```{r, message=FALSE, "Setting up the environment"}
+#| echo: false
+source(here("config/config_atos.R"))
+source(here("R/fn_plot_data_at_mast.R"))
+
+parser <- ArgumentParser()
+
+#parser$add_argument("-start_date", type="character",
+#                    default=NULL,
+#                    help="First date to process [default %(default)s]",
+#                    metavar="Date in format YYYYMMDDHH")
+
+#parser$add_argument("-end_date", type="character",
+#                    default=NULL,
+#                    help="Final date to process [default %(default)s]",
+#                    metavar="Date in format YYYYMMDDHH")
+
+args <- parser$parse_args()
+
+CONFIG <- conf_get_config()
+params <- CONFIG$params_details
+
+obs_path <- CONFIG$data$obs_path
+mod_path <- CONFIG$data$mod_path
+rds_path <- CONFIG$data$rds_input_path
+rdsfile  <- CONFIG$data$rds_input_name
+metadata <- CONFIG$metadata
+```
+
+Function to read mast data
+
+```{r, message=FALSE, "Function to read mast data"}
+#| echo: false
+read_mfile <- function(
+    datadir       = NA,
+    mast          = NA, # list of attributes for a site
+    model         = NA, # list of attributes for a model
+    lead_time     = NA,
+    v_type        = NA,
+    missing_value = -99999
+) {
+    #model <- metadata$Models$MEP0
+  #mast <- metadata$Sites$SODA
+  #datadir = "/ec/res4/scratch/fnm/MastVerifData/obs"
+  ##parameters <- unlist(strsplit( model$parameters ,","))
+  #file <- "/ec/res4/scratch/fnm/MastVerifData/fc/CABA/MEP0/Fcst_MEP0_CABA_20230924_00.txt"
+  #v_type <- "Mast"
+
+  if (v_type == "Mast" | v_type == "Flux") {
+    prefix <- "Meas"
+    parameters <- unlist(strsplit(mast[[{{v_type}}]]$parameters,","))
+    n_max = Inf # Take all there is
+    file_list <- list.files(path = paste(datadir,mast$name,sep="/"), 
+                            pattern = paste(prefix,
+                                            mast$name,
+                                            v_type,
+                                            "*",
+                                            sep="_"),
+                            full.names = TRUE)
+  } else if (v_type == "Model"){
+    prefix <- "Fcst"
+    parameters <- unlist(strsplit( model$parameters ,","))
+    n_max <- 24 #Some models provide more than 24 steps
+    file_list <- list.files(path=paste(mod_path,
+                                       mast$name,
+                                       model$name,
+                                       sep="/"),
+                            pattern=glob2rx(
+                              paste(prefix,model$name, 
+                                    mast$name, "*",
+                                    sep="_")),
+                            full.names = TRUE)
+  } else { stop("what what what")}
+
+  # Read and process each text file
+  lapply(file_list, function(file) {
+    # Read the text file and convert to tibble,
+    buffer <- read_table(
+      file,
+      col_names = FALSE,
+      show_col_types = FALSE,
+      n_max = n_max
+    )  |>   
+      select(1:length(parameters)) |>
+      rename_with(~ parameters, 1:length(parameters))
+    
+    if (v_type == "Mast" | v_type == "Flux") {
+      buffer <- buffer |> 
+        mutate_all(~ifelse(.== -99999, NA, .))   |>
+        mutate(
+          valid_dttm =  ymd_hm(valid_dttm),
+          SID=mast$SID, 
+          lon=mast$lon,
+          lat=mast$lat, 
+          elev=mast$elev,
+          valid_hour = format(valid_dttm, format = "%H:%M"))
+      if (mast$name == "LIND") {
+        buffer <- buffer |>
+          mutate(SWDIF = NA,
+                 DNI = NA)
+      }
+    } else if (v_type == "Model"){
+      buffer <- buffer |> 
+        mutate_all(~ifelse(.== -99999, NA, .)) |>
+        mutate(
+          valid_dttm = ymd_hm(valid_dttm * model$minutefactor),
+          valid_dttm = case_when( #Some FRAR data are valid at h-1min
+            minute(valid_dttm) == 59
+            ~ valid_dttm+minutes(1),
+            TRUE ~ valid_dttm),
+          fcst_dttm = first(valid_dttm) - seconds(model$first_lead_time),
+          lead_time = as.numeric(
+            difftime(valid_dttm, fcst_dttm, units = "secs")),
+          fcst_model=model$name, 
+          SID=mast$SID, 
+          model_elevation = mast$elev, 
+          fcst_cycle="0")
+    }
+    return(buffer)}) |> bind_rows()
+} 
+#see: https://fminwp.fmi.fi/mastverif/docs/Mast_verif_dataDescr.pdf
+
+```
+
+Function to select one parameter
+
+```{r, message=FALSE, "Function to select one parameter"}
+#| echo: false
+
+#Observations <- all_obs
+#Forecasts <- all_mods
+#parm <- "MOMF"
+#SID <- 1
+
+select_parameter <- function(Observations, Forecasts, parm, SID){
+  
+  OB <-Observations |> 
+    filter(SID=={{ SID }}) %>%
+    select(valid_dttm,SID,lon, lat, elev, all_of({{parm}})) %>% 
+    mutate(units = params[[{{parm}}]]$units) %>%
+    filter(!is.na(!!sym(parm)))  #
+  
+  if (length(OB[[parm]]) > 0){
+    
+    FC <- 
+      lapply( names(Forecasts), function(thismodel){ 
+        modcolname <- "fcst" 
+        tryCatch(
+          as_harp_df( Forecasts[[ thismodel ]] %>%
+                        filter(SID == {{SID}}) |>
+                        select("fcst_model", "fcst_dttm", "lead_time", 
+                               "valid_dttm", "fcst_cycle", "SID",
+                               "model_elevation", all_of(parm)) %>% 
+                        mutate( parameter={{parm}}, 
+                                z=2,
+                                units =  params[[{{parm}}]]$units ) %>% 
+                        rename(!!modcolname:=parm)) |>
+            filter(!is.na(fcst)),   # discard rows with NA
+          error = function(e) NULL
+        )
+      } ) |> 
+      purrr::discard(is.null)  # gets rid of model who did not have parm
+    
+    #  Give names to the data frames, identify data frames (models) with yero rows
+    FC <- set_names( FC, 
+                     as.vector( unlist(
+                       sapply(FC, function(x){
+                         ifelse ( length( unique(x$fcst_model)) > 0, 
+                                  unique(x$fcst_model), "nano")
+                       }
+                       )
+                     ))
+    ) 
+    
+    FC <- FC[names(FC) != "nano"]  #discard models with zero rows
+    
+    
+    if (length(FC)>0){ 
+      join_to_fcst(common_cases(as_harp_list(FC)),as_harp_df(OB)) 
+      }
+
+  } else if(length(OB[[parm]]) == 0 || length(FC)==0) {
+    NULL
+  }
+  
+}
+
+
+
+
+```
+
+Function to add derived parameters
+
+```{r, message=FALSE, "Add derived parameters to data frame"}
+#| echo: false
+#| 
+add_derived_parameters <- function(df){
+  
+  mutate(df, RNET=NA, STH=NA, RESID=NA)
+  
+  if( all(c("GLOB","LWDN","SWUP","LWUP", "SSH", "SLH") %in% names(df)) ){
+    mutate(df, 
+           STH   =  SSH + SLH, 
+           RNET  = GLOB + LWDN - SWUP - LWUP,
+           NETRAD = GLOB + LWDN - SWUP - LWUP,
+           RESID = GLOB + LWDN - SWUP - LWUP - SSH - SLH
+    )
+  } else if( all(c("SSH", "SLH") %in% names(df)) ){
+    mutate(df,
+           STH   = SSH + SLH
+    )
+  }
+}
+```
+
+Read observations
+
+```{r, message=FALSE, "Read  mast data"}
+#| echo: false
+
+all_obs <- full_join( 
+  lapply(metadata$Sites, function(mast){
+    print(paste("reading mast data for", mast$name, "from", obs_path,sep=" "))
+    read_mfile(mast = mast, 
+               datadir=obs_path, 
+               v_type="Mast")
+  }) |> 
+    bind_rows(),
+  lapply(metadata$Sites, function(mast){
+    print(paste("reading flux data from", mast$name, "from", obs_path,sep=" "))
+    read_mfile(mast = mast, 
+               datadir=obs_path, 
+               v_type="Flux")
+  }) |> bind_rows()
+) |>
+  add_derived_parameters()
+
+
+
+
+```
+
+Read forecasts
+
+```{r, message=FALSE, "Read forecasts"}
+#| echo: false
+
+#The model data contains neither fcst_dttm nor lead time, but only the valid time.
+#However, only forecasts from 00UTC are supposed to be used, and the first
+#forecast should have a lead time of 1 hour, so, assuming 
+#no errors, the missing data can be calculated. A check should be added, 
+#to ensure that wrong data is excluded from further analysis.
+all_mods <- set_names(
+  lapply(metadata$Models, function(model){
+    lapply(metadata$Sites, function(mast){
+      #print(mast$models)
+      if (grepl(model$name, mast$models)){ 
+        print(paste("reading model output for", mast$name, model$name, 
+                    "from", mod_path, sep=" "))
+          read_mfile(mast=mast, 
+                   model=model, 
+                   datadir=mod_path, 
+                   v_type="Model")
+}
+      }) |>
+      bind_rows() |> 
+      add_derived_parameters()
+  }), sapply(metadata$Models, function(model){model$name})
+  )
+
+```
+
+Save configuration, metadata, and data in rds-file
+
+```{r, "Save data  into an rds-file"}
+#
+saveRDS(list(CONFIG   = CONFIG, 
+             metadata = metadata, 
+             params   = params, 
+             all_mods = all_mods, 
+             all_obs  = all_obs),
+             paste(rds_path,rdsfile,sep="/") )
+print(paste0("saved data in ",paste(rds_path,rdsfile,sep="/")))
+```
+
+Read from an rds-file
+
+```{r}
+
+if (FALSE){
+indata <- readRDS(paste(rds_path,rdsfile,sep="/"))
+}
+```
+
+Compute and visuaise--\>
+
+```{r,  message=FALSE, "Compute and visualise", results="asis"}
+#| echo: false
+
+for (site in NULL) {
+#for (site in c("SODA","CABA","LIND")) {
+
+  
+  this_mast <- metadata$Sites[[{{site}}]]$SID
+  mt <- unlist(strsplit(metadata$Sites[[{{site}}]]$Mast$parameters, ","))
+  mt <- mt[mt != "valid_dttm"]
+  fx <- unlist(strsplit(metadata$Sites[[{{site}}]]$Flux$parameters, ","))
+  fx <- fx[fx != "valid_dttm"]
+  #for (choice in c(mt, fx, "RNET","STH","RESID")) {
+  for (choice in setdiff(c(mt, fx),"EVAP")) {
+    
+    # Note that removal of NAs is done in select_parameter
+    
+    
+    object <- select_parameter(all_obs, 
+                               all_mods, 
+                               choice, 
+                               SID=this_mast)
+    
+    if(!is.null(object)) {
+      object <- check_obs_against_fcst(object, 
+          {{choice}},
+          num_sd_allowed = 6) |>
+        expand_date(valid_dttm)
+      
+      tester <- do.call(rbind, 
+                        lapply(object, function(model){
+                          model |>
+                            select( valid_dttm, 
+                                    fcst, 
+                                    all_of({{choice}}), 
+                                    fcst_model, SID)
+                        })) |>
+        filter(SID=={{this_mast}})
+      
+      if (length( tester[[choice]]) > 0) {  
+        print(c(site, choice))
+        iwalk(
+          list("valid_dttm", "valid_hour", "hexbin", "histogram", "cumhisto"),
+          \(x,y) fn_plot_data_at_mast(
+            fc_object           = object,
+            plotvar             = choice, 
+            SID                 = this_mast, 
+            site                = site,
+            plot_type_i         = y,
+            plot_type           = x,
+            rolling_mean_window = 3*24)
+        )
+      }
+    }
+    } # loop over parameters
+  } # loop over sites
+```
+
+```{r, message=FALSE, "det_verify stuff2"}
+#| echo: false
+
+#rerun verification setting obervation to 0, thus storing the parameter
+
+#value in the columns for bias and mae
+
+#dsc <- det_verify( # as_harp_list( # lapply(object, function(x){ # x |> mutate({{ choice }} := 0) # } # ) # ), # {{choice}}, # groupings = list( # c("lead_time", "mast"), # c("valid_dttm", "mast") ## ), # hexbin=TRUE, # thresholds = params[[{{choice}}]]$thresholds)
+
+#hacking: replace column mae with the parameter value #vf$det_summary_scores$mae <- dsc$det_summary_scores$mae ## unfortunately the following does not work, as harp refuses to display ## columns with novel names ## vf$det_summary_scores <- vf$det_summary_scores |> rename(parameter = mae)
+
+#save_point_verif(vf, here("verification")) #save_point_verif(dsc, here("description")) #shiny_plot_point_verif(here("verification"), full_dir_navigation = FALSE, theme#="light")
+```

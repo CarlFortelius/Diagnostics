@@ -1,0 +1,32 @@
+{
+    "id": "C31CB0B9",
+    "path": "/etc/ecmwf/nfs/dh1_home_b/fnm/rproj/Sitecomparison/R/Read_obs_and_fc.qmd",
+    "project_path": null,
+    "type": "quarto_markdown",
+    "hash": "1630140595",
+    "contents": "",
+    "dirty": false,
+    "created": 1720161880584.0,
+    "source_on_save": false,
+    "relative_order": 2,
+    "properties": {
+        "rmdVisualMode": "true",
+        "rmdVisualWrapConfigured": "true",
+        "chunk_output_type": "console",
+        "source_window_id": "",
+        "Source": "Source",
+        "docOutlineVisible": "1",
+        "rmdVisualCollapsedChunks": "",
+        "rmdVisualModeLocation": "411:763.6363525390625",
+        "cursorPosition": "319,0",
+        "scrollLine": "0"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1720163098,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1720163098884,
+    "read_only": false,
+    "read_only_alternatives": []
+}

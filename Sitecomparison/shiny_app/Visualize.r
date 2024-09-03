@@ -11,6 +11,7 @@ library(shiny)
 library(here)
 library("harp")
 library(tidyverse)
+library(purrr)
 library(zoo)
 library(scales)      # Needed for funtion pretty_breaks()
 
@@ -28,12 +29,14 @@ ui <- fluidPage(
     sidebarPanel(
       textInput("rds_path", "Give a directory:", value = "/perm/fnm/Site_data/"),
       uiOutput("fileSelectorUI"),  # Placeholder for selectInput
-      #selectInput("rds_file", "Choose the period", choices = list.files(path = rds_path, pattern = "\\.rds$", full.names = FALSE)),
+      #selectInput("rds_file", "Choose the period", choices = list.files(path = rds_path, 
+                                                  #pattern = "\\.rds$", full.names = FALSE)),
       actionButton("load_data", "Load Data"),
       uiOutput("site_ui"),
       uiOutput("parameter_ui"),
       selectInput("plot_type", "Plot Type", choices = c("valid_dttm", "valid_hour", "hexbin", 
-                                                        "histogram", "cumhisto", "compare_params")),
+                                                        "histogram", "cumhisto", "A_vs_B", 
+                                                        "compare_params")),
       selectInput("show_zero", "Show Zero", choices = c("Neither", "Both", "X", "Y")),
       uiOutput("parameter2_ui")
     ),
@@ -77,18 +80,35 @@ server <- function(input, output, session) {
     
     output$parameter_ui <- renderUI({
       req(indata())
-      selectInput("parameter", "Choose Parameter", choices = names(indata()$params))
+      selectInput("parameter", "Choose Parameter", choices = c(names(indata()$params), "SFCFORC"))
     })
     output$parameter2_ui <- renderUI({
       req(indata())
-      selectInput("parameter2", "Choose Reference Parameter", choices = names(indata()$params))
+      selectInput("parameter2", paste0("Choose Reference Parameter \n
+                                       (for A_vs_B and compare_params)"), 
+                                       choices = c(names(indata()$params), "SFCFORC"))
     })
   })
   
   output$dataPlot <- renderPlot({
     req(indata(), input$site, input$parameter, input$plot_type)
     
+    
     data       <- indata()
+    if( all(list("LWDN", "GLOB", "SWUP") %in% names(data$all_obs))){
+    data$all_obs <-  data$all_obs |> mutate(SFCFORC = LWDN + GLOB - SWUP)
+    }
+    data$all_mods <- setNames(lapply(data$all_mods, function(x) {
+      if( all(list("LWDN", "GLOB", "SWUP") %in% names(x))) { 
+        x %>%
+        mutate(SFCFORC = LWDN + GLOB - SWUP)
+      }
+    }), names(data$all_mods))
+    
+    data$params$SFCFORC <- list(
+      thresholds = data$params$LWDN$thresholds,units="Wm^-2",
+      definiton = "GLOB + LWDN - SWUP "
+    )
     site       <- input$site
     parameter  <- input$parameter
     parameter2 <- input$parameter2
@@ -125,7 +145,7 @@ server <- function(input, output, session) {
                                     parameter2, 
                                     data$params[[{{parameter2}}]]$units,
                                     SID=data$metadata$Sites[[{{site}}]]$SID)
-      if(!is.null(object)) {
+      if(!is.null(object2)) {
         object2 <- as_harp_list(
           lapply(
             object2,

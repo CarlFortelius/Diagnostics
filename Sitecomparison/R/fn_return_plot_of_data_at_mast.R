@@ -4,7 +4,7 @@
 fn_return_plot_of_data_at_mast <- function(
     plot_type           = NULL, # possible choices: valid_dttm, 
     fc_object           = NA, #a harp forecast object (list of data frames)
-    secondary_object    = NA, #used for certain plot_types ("compare_params")
+    secondary_object    = NA, #used for certain plot_types ("compare_params", A_vs_B)
     #plotvar             = NA, #string, name of parameter to be plotted
     #secondary_var       = NA, #string, used for certain plot_types
     SID                 = NA, # station identifier (1=SODA, 2=CABA, 3=LIND)
@@ -75,8 +75,8 @@ fn_return_plot_of_data_at_mast <- function(
           x = "date",
           y = this_unit,
           title =  paste(
-            plotvar," ", rolling_mean_window/24., " days running mean at ",
-            site,"\n",
+            plotvar, " at ",
+            site,";", rolling_mean_window/24., " days running mean \n",
             days, " days present in ", start_date," - ",end_date,sep="")
         )
     
@@ -100,7 +100,7 @@ fn_return_plot_of_data_at_mast <- function(
           x = "hour UTC",
           y = this_unit, 
           title =  paste(
-            plotvar," diurnal mean at ",site,"\n",
+            plotvar," at ",site,"; diurnal mean \n",
             days, " days present in ", start_date," - ",end_date,sep="")
         )
     
@@ -156,16 +156,16 @@ fn_return_plot_of_data_at_mast <- function(
         }
   } else if (plot_type == "hexbin"){
     dfr <- do.call(rbind, 
-            lapply(fc_object, function(model){
-              model |>
-                select( valid_dttm, fcst, all_of({{plotvar}}), fcst_model, SID)
-            })) |>
+                   lapply(fc_object, function(model){
+                     model |>
+                       select( valid_dttm, fcst, all_of({{plotvar}}), fcst_model, SID)
+                   })) |>
       filter(SID=={{SID}})
     
     #It can happen that there are no common cases, so we need check
     if (length(dfr[[plotvar]]) > 0){
       this_plot <-
-      dfr |>
+        dfr |>
         ggplot(
           aes(x  = !!sym(plotvar), y = fcst)) +
         geom_hex(position = "identity")       +
@@ -180,19 +180,49 @@ fn_return_plot_of_data_at_mast <- function(
         geom_abline(intercept = 0, slope = 1, color = "black", linetype = "solid") +
         facet_wrap(~fcst_model, ncol = 2) +
         theme(axis.text=element_text(size=12)) + #change font size of axis text
-        labs(x = this_unit, 
-             y = this_unit, 
+        labs(x = paste0("OBS, ",this_unit), 
+             y = paste0("MOD, ",this_unit), 
              title =  paste(
                plotvar," at ",site,"\n",
                days, " days present in ", start_date," - ",end_date,sep="")
         )
-  }
+    }
+  } else if (plot_type == "A_vs_B"){
+    dfr <- inner_join(fn_fcst_to_df(fc_object,        "valid_dttm", plotvar,       SID),
+                      fn_fcst_to_df(secondary_object, "valid_dttm", secondary_var, SID),
+                      by=c("valid_dttm", "fcst_model", "SID"), suffix = c(".y", ".x"))
+
+    
+    #It can happen that there are no common cases, so we need check
+    #if (length(dfr[[fcst.x]]) > 0 & length(dfr[[fcst.y]]) > 0){
+      this_plot <-
+        dfr |>
+        ggplot(
+          aes(x  = fcst.x, y = fcst.y)) +
+        geom_hex(position = "identity")       +
+        scale_fill_viridis_c(
+          option = "magma", 
+          name   = "Frequency", 
+          trans  = "log",
+          breaks = seq_double(2, 1024),
+          labels = function(x) format(x, scientific = FALSE,
+                                      trim = TRUE),
+        ) +
+        facet_wrap(~fcst_model, ncol = 2) +
+        theme(axis.text=element_text(size=12)) + #change font size of axis text
+        labs(y = unique(       fc_object[[1]]$units), 
+             x = unique(secondary_object[[1]]$units), 
+             title =  paste(
+               plotvar," vs ",secondary_var," at ",site,"\n",
+               days, " days present in ", start_date," - ",end_date,sep="")
+        )
+    #}
   } else if(plot_type == "compare_params"){
     df <- inner_join(fn_fcst_to_df(fc_object, "valid_dttm", plotvar, SID),
                       fn_fcst_to_df(secondary_object, "valid_dttm", secondary_var, SID),
                       by=c("valid_dttm", "fcst_model", "SID"), suffix = c(".y", ".x"))
-    mean_obs_x <- mean(filter(df, fcst_model=="OBS")$fcst.x)
-    mean_obs_y <- mean(filter(df, fcst_model=="OBS")$fcst.y)
+    mean_obs_x <- mean( filter(df, fcst_model=="OBS")$fcst.x )
+    mean_obs_y <- mean( filter(df, fcst_model=="OBS")$fcst.y )
     
     this_plot <- 
         df |> 

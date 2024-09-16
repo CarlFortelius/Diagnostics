@@ -102,6 +102,9 @@ server <- function(input, output, session) {
       if( all(list("LWDN", "GLOB", "SWUP") %in% names(x))) { 
         x %>%
         mutate(SFCFORC = LWDN + GLOB - SWUP)
+      } else {
+        x %>%
+          mutate(SFCFORC = NULL)
       }
     }), names(data$all_mods))
     

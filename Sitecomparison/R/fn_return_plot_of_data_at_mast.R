@@ -208,10 +208,11 @@ fn_return_plot_of_data_at_mast <- function(
           labels = function(x) format(x, scientific = FALSE,
                                       trim = TRUE),
         ) +
+        #coord_equal() + 
         facet_wrap(~fcst_model, ncol = 2) +
         theme(axis.text=element_text(size=12)) + #change font size of axis text
-        labs(y = unique(       fc_object[[1]]$units), 
-             x = unique(secondary_object[[1]]$units), 
+        labs(y = paste(plotvar,       unique(       fc_object[[1]]$units), sep=", "), 
+             x = paste(secondary_var, unique(secondary_object[[1]]$units), sep=", "), 
              title =  paste(
                plotvar," vs ",secondary_var," at ",site,"\n",
                days, " days present in ", start_date," - ",end_date,sep="")

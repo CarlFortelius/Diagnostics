@@ -1,15 +1,0 @@
-"0","for (i in seq_along(files_1)){"
-"0","# read in and get rid of missing data integer code	"
-"0","    P1 <- read_grid( files_1[i], fa_name_1, file_format = ""fa"")#; print(P1)"
-"0","    P1 <- do.call(transformation, list(scale*(P1 + 0/(1e20-P1)) + offset))"
-"0","    P2 <- read_grid( files_2[i], fa_name_2, file_format = ""fa"")#; print(P2)"
-"0","    P2 <-  do.call(transformation,list(scale*(P2 + 0/(1e20-P2)) + offset))"
-"0","}"
-"2","Reading /home/forteliusc/DataFiles/cirrus/harmonie/MEPS_prod/archive/2024/03/04/00/mbr000/ICMSHHARM+0024.sfx
-"
-"2","[33mReading fa file[39m [32m■                               [39m   0% |  ETA: ?"
-"2","                                                                "
-"2","Reading /home/forteliusc/DataFiles/cirrus/harmonie/MEPS_prod/archive/2024/03/04/00/mbr000/ICMSHHARM+0024.sfx
-"
-"2","[33mReading fa file[39m [32m■                               [39m   0% |  ETA: ?"
-"2","                                                                "

@@ -1,7 +1,0 @@
-"0","    "
-"0","# Deal with titles and labels... "
-"0","    #print(attr(P2,""info""))"
-"0","    label_1 <- paste(trimws(attr(P1, ""info"")$name), paste(format(attr(P1, ""info"")$time$basedate,""%Y%m%d%H:%M""),"
-"0","			   attr(P1,""info"")$time$forecast, sep=""""), sep=""@"")"
-"0","    label_2 <- paste(trimws(attr(P2, ""info"")$name), paste(format(attr(P2, ""info"")$time$basedate,""%Y%m%d%H:%M""),"
-"0","			   attr(P2,""info"")$time$forecast, sep=""""), sep=""@"")"

@@ -6,13 +6,20 @@
 #set -ex
 archive='markku@hirlam.org:/home/hirlam/mastdata/ArchiveData'
 mastkey=/home/fnm/.ssh/mastkey_markku
+#hirlamUSER=forteliu
+#archive=${hirlamUSER}'@hirlam.org:/home/hirlam/mastdata/ArchiveData'
+#mastkey=/home/$USER/.ssh/id_rsa
 ##archive='markku@hirlam.org:/home/hirlam/mastdata/'
 
+#MASTLIST="SODA"
 MASTLIST="SODA CABA LIND"
+#MASTLIST="SODA CABA LIND"
 ##MASTLIST="SODA CABA LIND VALL"
-for THISYEAR in 2024
+for THISYEAR in 2017 2018 2019 2020 2021 2022 2023 2024
+#for THISYEAR in 2023
 do 
-for THISMONTH in JJA
+for THISMONTH in DJF MAM JJA SON
+#for THISMONTH in JJA
 do
 #THISYEAR=2022
 #THISMONTH='DJF'
@@ -85,8 +92,8 @@ do
    mkdir -p $OBSPATH
    for key in $keylist
   do
-      scp -i ${mastkey} ${archive}/../Meas_${THISMAST}_Mast_${key}.txt $OBSPATH
-      scp -i ${mastkey} ${archive}/../Meas_${THISMAST}_Flux_${key}.txt $OBSPATH
+      scp -i ${mastkey} ${archive}/../${THISYEAR}/Meas_${THISMAST}_Mast_${key}.txt $OBSPATH
+      scp -i ${mastkey} ${archive}/../${THISYEAR}/Meas_${THISMAST}_Flux_${key}.txt $OBSPATH
 #      echo "No data are copied"1
    done
   #./DeleteEmpty.pl ${OBSPATH}/*

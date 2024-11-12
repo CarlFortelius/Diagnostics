@@ -29,6 +29,7 @@ Setting up the environment
 #| echo: false
 source(here("config/config_atos.R"))
 source(here("R/fn_plot_data_at_mast.R"))
+source(here("R/fn_select_parameter.R"))
 
 parser <- ArgumentParser()
 
@@ -149,74 +150,6 @@ read_mfile <- function(
 
 ```
 
-Function to select one parameter
-
-```{r, message=FALSE, "Function to select one parameter"}
-#| echo: false
-
-#Observations <- all_obs
-#Forecasts <- all_mods
-#parm <- "MOMF"
-#SID <- 1
-
-select_parameter <- function(Observations, Forecasts, parm, SID){
-  
-  OB <-Observations |> 
-    filter(SID=={{ SID }}) %>%
-    select(valid_dttm,SID,lon, lat, elev, all_of({{parm}})) %>% 
-    mutate(units = params[[{{parm}}]]$units) %>%
-    filter(!is.na(!!sym(parm)))  #
-  
-  if (length(OB[[parm]]) > 0){
-    
-    FC <- 
-      lapply( names(Forecasts), function(thismodel){ 
-        modcolname <- "fcst" 
-        tryCatch(
-          as_harp_df( Forecasts[[ thismodel ]] %>%
-                        filter(SID == {{SID}}) |>
-                        select("fcst_model", "fcst_dttm", "lead_time", 
-                               "valid_dttm", "fcst_cycle", "SID",
-                               "model_elevation", all_of(parm)) %>% 
-                        mutate( parameter={{parm}}, 
-                                z=2,
-                                units =  params[[{{parm}}]]$units ) %>% 
-                        rename(!!modcolname:=parm)) |>
-            filter(!is.na(fcst)),   # discard rows with NA
-          error = function(e) NULL
-        )
-      } ) |> 
-      purrr::discard(is.null)  # gets rid of model who did not have parm
-    
-    #  Give names to the data frames, identify data frames (models) with yero rows
-    FC <- set_names( FC, 
-                     as.vector( unlist(
-                       sapply(FC, function(x){
-                         ifelse ( length( unique(x$fcst_model)) > 0, 
-                                  unique(x$fcst_model), "nano")
-                       }
-                       )
-                     ))
-    ) 
-    
-    FC <- FC[names(FC) != "nano"]  #discard models with zero rows
-    
-    
-    if (length(FC)>0){ 
-      join_to_fcst(common_cases(as_harp_list(FC)),as_harp_df(OB)) 
-      }
-
-  } else if(length(OB[[parm]]) == 0 || length(FC)==0) {
-    NULL
-  }
-  
-}
-
-
-
-
-```
-
 Function to add derived parameters
 
 ```{r, message=FALSE, "Add derived parameters to data frame"}
@@ -224,20 +157,43 @@ Function to add derived parameters
 #| 
 add_derived_parameters <- function(df){
   
-  mutate(df, RNET=NA, STH=NA, RESID=NA)
+# adding derived parameters
+#  RNET:   Net radiation
+#   STH:   Total surface turbulent heat flux (sensible and latent)
+# RESID:   Implied heat flux into the soil
+# SFCFORC: Forcing quasi external to the surface, i.e. Downwelling
+#          radiation - reflected radiation
+#   TSRAD: Surface radiative temperature  
+#     UDT: Wind speed times air-surface temperature difference
+#  
+  df <- mutate(df, RNET=NA, STH=NA, RESID=NA, SFCFORC=NA, TSRAD=NA, UDT=NA)
   
-  if( all(c("GLOB","LWDN","SWUP","LWUP", "SSH", "SLH") %in% names(df)) ){
-    mutate(df, 
-           STH   =  SSH + SLH, 
-           RNET  = GLOB + LWDN - SWUP - LWUP,
-           NETRAD = GLOB + LWDN - SWUP - LWUP,
-           RESID = GLOB + LWDN - SWUP - LWUP - SSH - SLH
-    )
-  } else if( all(c("SSH", "SLH") %in% names(df)) ){
-    mutate(df,
+     if( all(c("SSH", "SLH") %in% names(df)) ){
+        print("Adding derived parameter: STH")
+         df <- mutate(df,
            STH   = SSH + SLH
-    )
-  }
+         )}
+  
+    if( all(c("GLOB","LWDN","SWUP","LWUP", "SSH", "SLH") %in% names(df)) ){
+        print("Adding derived parameter: RESID")
+        df <- mutate(df, 
+           RESID   = GLOB + LWDN - SWUP - LWUP - SSH - SLH
+        )}
+  
+  if( all(c("GLOB","LWDN","SWUP","LWUP") %in% names(df)) ){
+    print("Adding derived parameters: RNET, SFCFORC, TSRAD")
+    df <- mutate(df, 
+           RNET    = GLOB + LWDN - SWUP - LWUP,
+           SFCFORC = GLOB + LWDN - SWUP,
+           TSRAD   = (LWUP/5.67e-8)^0.25 - 273.15
+    )}
+  
+   if( all(c("LWUP", "TL", "FF") %in% names(df)) ){
+         print("Adding derived parameter:  UDT")
+         df <- mutate(df, 
+          UDT     = TL - ((LWUP/5.67e-8)^0.25 - 273.15)  * FF
+    )}
+return(df)
 }
 ```
 
@@ -278,10 +234,14 @@ Read forecasts
 #forecast should have a lead time of 1 hour, so, assuming 
 #no errors, the missing data can be calculated. A check should be added, 
 #to ensure that wrong data is excluded from further analysis.
-all_mods <- set_names(
+
+# Compacting is for removing NULL_items in the case that 
+# one or more models is not present at any site.
+all_mods <- compact( 
+  set_names(
   lapply(metadata$Models, function(model){
     lapply(metadata$Sites, function(mast){
-      #print(mast$models)
+      #print(paste(model$name, mast$models, sep=" "))
       if (grepl(model$name, mast$models)){ 
         print(paste("reading model output for", mast$name, model$name, 
                     "from", mod_path, sep=" "))
@@ -294,7 +254,7 @@ all_mods <- set_names(
       bind_rows() |> 
       add_derived_parameters()
   }), sapply(metadata$Models, function(model){model$name})
-  )
+  ))
 
 ```
 
@@ -302,9 +262,9 @@ Save configuration, metadata, and data in rds-file
 
 ```{r, "Save data  into an rds-file"}
 #
-saveRDS(list(CONFIG   = CONFIG, 
-             metadata = metadata, 
-             params   = params, 
+saveRDS(list(data   = CONFIG$data, 
+             metadata =CONFIG$metadata, 
+             params   = CONFIG$params, 
              all_mods = all_mods, 
              all_obs  = all_obs),
              paste(rds_path,rdsfile,sep="/") )
@@ -320,12 +280,12 @@ indata <- readRDS(paste(rds_path,rdsfile,sep="/"))
 }
 ```
 
-Compute and visuaise--\>
+Compute and visualise as you whish--\>
 
 ```{r,  message=FALSE, "Compute and visualise", results="asis"}
 #| echo: false
-
-for (site in NULL) {
+if (FALSE){
+for (site in c("SODA")) {
 #for (site in c("SODA","CABA","LIND")) {
 
   
@@ -340,9 +300,10 @@ for (site in NULL) {
     # Note that removal of NAs is done in select_parameter
     
     
-    object <- select_parameter(all_obs, 
+    object <- fn_select_parameter(all_obs, 
                                all_mods, 
                                choice, 
+                               CONFIG$params_details[[choice]]$units,
                                SID=this_mast)
     
     if(!is.null(object)) {
@@ -378,6 +339,7 @@ for (site in NULL) {
     }
     } # loop over parameters
   } # loop over sites
+} # End of main if
 ```
 
 ```{r, message=FALSE, "det_verify stuff2"}

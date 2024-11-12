@@ -64,17 +64,25 @@ conf_get_params_details <- function(){
     		  thresholds = SSH_thr,units="Wm^-2",
     		  definiton = "SSH + SLH"
     		),
-    		NETRAD = list(
-    		  thresholds = LW_thr,units="Wm^-2",
-    		  definiton = "GLOB + LWDN -SWUP - LWUP"
-    		),
     		RNET = list(
     		  thresholds = LW_thr,units="Wm^-2",
     		  definiton = "GLOB + LWDN -SWUP - LWUP"
     		),
     		RESID = list(
-    		  units="Wm^-2",
-    		  definition = "RNET - STH"
+    		  thresholds = SSH_thr, units="Wm^-2",
+    		  definition = "GLOB + LWDN -SWUP - LWUP - SSH - SLH"
+    		),
+    		SFCFORC = list(
+    		  thresholds = LW_thr,units="Wm^-2",
+    		  definiton = "GLOB + LWDN -SWUP"
+    		),
+    		TSRAD = list(
+    		  thresholds = TT_thr,units="degC",
+    		  definiton = "(LWUP/5.67e-8)^0.25 - 273.15"
+    		),
+    		UDT = list(
+    		  thresholds = FF_thr,units="ms^-1K",
+    		  definiton = "( TL-(LWUP/5.67e-8)^0.25 ) * FF"
     		),
     		EVAP = list(
         thresholds = EVAP_thr,units="?"

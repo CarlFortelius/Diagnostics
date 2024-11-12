@@ -13,7 +13,7 @@ library("harp")
 library(tidyverse)
 library(purrr)
 library(zoo)
-library(scales)      # Needed for funtion pretty_breaks()
+library(scales)      # Needed for function pretty_breaks()
 
 
 source(here("R/fn_select_parameter.R"))
@@ -80,13 +80,13 @@ server <- function(input, output, session) {
     
     output$parameter_ui <- renderUI({
       req(indata())
-      selectInput("parameter", "Choose Parameter", choices = c(names(indata()$params), "SFCFORC"))
+      selectInput("parameter", "Choose Parameter", choices = names( indata()$params) )
     })
     output$parameter2_ui <- renderUI({
       req(indata())
       selectInput("parameter2", paste0("Choose Reference Parameter \n
                                        (for A_vs_B and compare_params)"), 
-                                       choices = c(names(indata()$params), "SFCFORC"))
+                                       choices = names( indata()$params) )
     })
   })
   
@@ -95,23 +95,9 @@ server <- function(input, output, session) {
     
     
     data       <- indata()
-    if( all(list("LWDN", "GLOB", "SWUP") %in% names(data$all_obs))){
-    data$all_obs <-  data$all_obs |> mutate(SFCFORC = LWDN + GLOB - SWUP)
-    }
-    data$all_mods <- setNames(lapply(data$all_mods, function(x) {
-      if( all(list("LWDN", "GLOB", "SWUP") %in% names(x))) { 
-        x %>%
-        mutate(SFCFORC = LWDN + GLOB - SWUP)
-      } else {
-        x %>%
-          mutate(SFCFORC = NULL)
-      }
-    }), names(data$all_mods))
-    
-    data$params$SFCFORC <- list(
-      thresholds = data$params$LWDN$thresholds,units="Wm^-2",
-      definiton = "GLOB + LWDN - SWUP "
-    )
+    data$all_obs <- data$all_obs |> 
+      mutate(MOMF = if_else(SID == 3, -MOMF, MOMF)) #change the sign of MOMF for Lindenberg
+
     site       <- input$site
     parameter  <- input$parameter
     parameter2 <- input$parameter2

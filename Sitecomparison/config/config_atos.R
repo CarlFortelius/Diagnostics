@@ -27,9 +27,14 @@ conf_get_params_details <- function(){
         units = "degC"       
     			),
     		DT = list(
-        thresholds = DT_thr,
-        units = "degC"       
-    			),
+    		  thresholds = DT_thr,
+    		  units = "degC"       
+    		),
+    		DTLTS = list(
+    		  thresholds = DT_thr,
+    		  units = "degC",
+    		  definition = "TL - TSRAD"
+    		),
     		RH = list(
         thresholds = RH_thr, units="%"
     			),

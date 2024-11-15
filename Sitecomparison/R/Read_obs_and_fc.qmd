@@ -188,7 +188,13 @@ add_derived_parameters <- function(df){
            TSRAD   = (LWUP/5.67e-8)^0.25 - 273.15
     )}
   
-   if( all(c("LWUP", "TL", "FF") %in% names(df)) ){
+   if( all(c("LWUP", "TL") %in% names(df)) ){
+         print("Adding derived parameter:  DTLTS")
+         df <- mutate(df, 
+          DTLTS     = TL - ((LWUP/5.67e-8)^0.25 - 273.15)
+    )}
+
+     if( all(c("LWUP", "TL", "FF") %in% names(df)) ){
          print("Adding derived parameter:  UDT")
          df <- mutate(df, 
           UDT     = TL - ((LWUP/5.67e-8)^0.25 - 273.15)  * FF

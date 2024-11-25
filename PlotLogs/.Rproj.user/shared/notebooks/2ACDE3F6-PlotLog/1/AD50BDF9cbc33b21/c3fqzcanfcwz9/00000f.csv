@@ -1,6 +1,0 @@
-"0","#Save the tibbles into their respective rds files (this is not in use)"
-"0","#RDS_dir <- ""/home/forteliu/Datafiles/RDS/"""
-"0","#object <- c(meta, gpnorms, spnorms)"
-"0","#saveRDS(gpnorms, paste(RDS_dir, basename(logfile), "".gpnorms.rds"",sep=""""))"
-"0","#saveRDS(spnorms, paste(RDS_dir, basename(logfile), "".spnorms.rds"",sep="""")) "
-"0",""

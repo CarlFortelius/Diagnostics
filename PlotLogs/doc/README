@@ -1,0 +1,11 @@
+In the subdirectory called PlotLogs there is an r-projetc called 
+PlotLogs.Rproj  and two quarto documents PlotLog.qmd and PlotLogFrom RDS.qmd. 
+To display NODE file data, I open the rproject and the quarto documents in an
+rstudio-session. Rstudio is available on Atos after doing a "module load
+rstudio".  Executing PlotLog.qmd opens a shiny-window where I can select the
+NODE-file(s) to be examined. These can be either behind links or in local
+directories (by default, the program looks for output from the operational
+MetCoOp runs, this can be cahnged inside the code). If multiple files are 
+selected,  averages will be computed and offered for display. The results are
+stored in an rds-file, by default in the subdirectory RDS. Previously strored
+rds-files can be accessed by executing the second quarto document. 

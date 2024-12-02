@@ -1,4 +1,0 @@
-"0","HM_DATE <- unlist( strsplit(html_text(read_html(x = logfile, encoding=""UTF-8"")), '\n'))
-"
-"2","Error: '/ec/res4/scratch/fnm/cy46_eval/HM_Date_2023010100.html' does not exist.
-"

@@ -1,5 +1,0 @@
-"0","Nloop <- function(x){"
-"0","m <- 0*x  "
-"0","m[ which( diff(x)<0 ) +1 ] <- 1"
-"0","+ cumsum(m) +  1 "
-"0","}"

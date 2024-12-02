@@ -181,14 +181,23 @@ add_derived_parameters <- function(df){
         )}
   
   if( all(c("GLOB","LWDN","SWUP","LWUP") %in% names(df)) ){
-    print("Adding derived parameters: RNET, SFCFORC, TSRAD")
+    print("Adding derived parameters: RNET")
     df <- mutate(df, 
-           RNET    = GLOB + LWDN - SWUP - LWUP,
-           SFCFORC = GLOB + LWDN - SWUP,
-           TSRAD   = (LWUP/5.67e-8)^0.25 - 273.15
+           RNET    = GLOB + LWDN - SWUP - LWUP
+           )}
+  if( all(c("GLOB","LWDN","SWUP") %in% names(df)) ){
+    print("Adding derived parameters: SFFORC")
+    df <- mutate(df, 
+           SFCFORC = GLOB + LWDN - SWUP
     )}
   
-   if( all(c("LWUP", "TL") %in% names(df)) ){
+   if( all(c("LWUP") %in% names(df)) ){
+         print("Adding derived parameter:  TSRAD")
+         df <- mutate(df, 
+           TSRAD   = (LWUP/5.67e-8)^0.25 - 273.15
+    )}
+
+     if( all(c("LWUP", "TL") %in% names(df)) ){
          print("Adding derived parameter:  DTLTS")
          df <- mutate(df, 
           DTLTS     = TL - ((LWUP/5.67e-8)^0.25 - 273.15)

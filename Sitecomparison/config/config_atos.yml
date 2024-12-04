@@ -3,10 +3,10 @@
 # of masts and modesl.to be used 
 
 data:
-  obs_path: "/ec/res4/scratch/fnm/MastVerifData/2023/JJA/obs"     #/home/fnm/rproj/mastverification/sampledata"
-  mod_path: "/ec/res4/scratch/fnm/MastVerifData/2023/JJA/fc"     #/home/fnm/rproj/mastverification/sampledata"
+  obs_path: "/perm/fnm/MastVerifData/2023/SON/obs"     #/home/fnm/rproj/mastverification/sampledata"
+  mod_path: "/perm/fnm/MastVerifData/2023/SON/fc"     #/home/fnm/rproj/mastverification/sampledata"
   rds_input_path: "/perm/fnm/Site_data"
-  rds_input_name: "2023_JJA.rds"
+  rds_input_name: "2023_SON.rds"
   
 metadata:
   Sites:  

@@ -30,35 +30,53 @@ library(rnaturalearth)
 
 ```{r, echo=FALSE, "functions"}
 
-my_plot_chart <- function(pv, 
-                              title = NULL, 
-                              rivers = NULL,
-                              lakes = NULL,
-                              towns = NULL,
-                              roads = NULL,
-                              breaks = NULL) {
-  if (!is.null(breaks)){
+my_plot_chart <- function(pv,
+                          title = NULL,
+                          rivers = NULL,
+                          lakes = NULL,
+                          towns = NULL,
+                          roads = NULL,
+                          coastlines = NULL,
+                          breaks = NULL) {
+
+  if (!is.null(breaks)) {
     common_scale <- scale_fill_viridis_c(
-    option = "viridis",   # Choose a palette option ("viridis", "plasma", "magma", etc.)
-    limits = c(min(breaks), max(breaks)),   # Fixed color scale limits
-    breaks = breaks)} else {
-      common_scale <- NULL}
-    
-  plot(pv) +
-    common_scale + 
-  #geom_polygon(
-  #aes(x, y, group = group), lakes,
-  #fill = "skyblue3", colour = "blue", inherit.aes = FALSE
-  #) +
-  #geom_path(aes(x, y), rivers, colour = "blue", inherit.aes = FALSE) +
-  geom_path(aes(x, y), roads, colour = "red",inherit.aes = FALSE ) +
-    
-  ggtitle(title)      
-      
-    }
+      option = "viridis",
+      limits = c(min(breaks), max(breaks)),
+      breaks = breaks
+    )
+  } else {
+    common_scale <- NULL
+  }
 
+  p <- plot(pv) +  # Start building the plot here
+    common_scale +
+    ggtitle(title)
 
+  # Conditional plotting of features
+  if (!is.null(rivers)) {
+     p <- p + geom_path(aes(x, y), data = my_rivers, colour = "blue", inherit.aes = FALSE)
+  }
 
+  if (!is.null(roads)) {
+    p <- p + geom_path(aes(x, y), data = roads, colour = "red", inherit.aes = FALSE)
+  }
+
+  if (!is.null(towns)) {
+    p <- p + geom_polygon(aes(x, y, group = group), data = towns, fill = "pink", colour = "red", inherit.aes = FALSE)
+  }
+  
+  if (!is.null(lakes)) {
+    p <- p + geom_polygon(aes(x, y, group = group), data = lakes, fill = "skyblue3", colour = "blue", inherit.aes = FALSE)
+  }
+  if(!is.null(coastlines)) {
+    #coastline_sf <- st_as_sf(my_coastlines)
+    p <- p + geom_path(aes(x, y), data=coastlines, colour = "black")
+  }
+
+  
+   return(p) # Return the plot
+}
 
 
     my_plot_histo <- function(pv,label){
@@ -165,15 +183,15 @@ df_combined <- rbind(transform(df1, vector = "hisvar_1"), transform(df2, vector 
 #data_root <- "/home/forteliu/DataFiles/MEPS/2023/06/26/00/mbr000"
 #data_root <- "/home/forteliusc/DataFiles/" 
 
-path_1 <- "/ec/res4/scratch/fnm"
+path_1 <- "/home/forteliu/DataFiles/cirrus"
 path_2 <- "/ec/res4/scratch/fnm"
 
 
-exp_1 <- "MEPS_prod_warmstart"
-exp_2 <- "MEPS_prod_warmstart"
+exp_1 <- "MEPS_prod"
+exp_2 <- "MEPS_prod"
 
-file_key_1 <- paste(path_1, exp_1, "2024/01/17/21/mbr000/ICMSHHARM+0003.sfx",sep="/")
-file_key_2 <- paste(path_2, exp_2, "2024/01/17/21/mbr000/ICMSHHARM+0003.sfx",sep="/")
+file_key_1 <- paste(path_1, exp_1, "archive/2025/01/15/09/mbr000/ICMSHHARM+0006.sfx",sep="/")
+file_key_2 <- paste(path_1, exp_1, "archive/2025/01/15/09/mbr000/ICMSHHARM+0006.sfx",sep="/")
 
 files_1 <- system(paste("ls", file_key_1), intern=TRUE) #; print(files_1)
 files_2 <- system(paste("ls", file_key_2), intern=TRUE) #; print(files_2)
@@ -288,9 +306,9 @@ chart_breaks = NULL# c(-33,-32, -31, -30, -29, -28, -27, -26, -25, -24, -23, -22
 Set the domain:
 
 ```{r}
-zclon <- 25.80
-zclat <- 66.50
-zrad <- 0#15#100
+zclon <- 23.80
+zclat <- 60.50
+zrad <- 100#15#100
 
 ```
 
@@ -346,41 +364,58 @@ Define physiographics:
 ```{r, echo=FALSE, "Define physiographic characters, echo=FALSE"}}
 
 # Download and reproject rivers, lakes, towns, roads data
-rivers <- get_map(
+if (!exists("my_rivers")){
+my_rivers <- get_map(
   P1$gridded_data,
   as_Spatial(
     ne_download(scale = 10, type = "rivers_europe", category = "physical")
   ),
   polygon = FALSE
-)
+)}
 
+if (!exists("lakes")){
 lakes <- get_map(
   P1$gridded_data,
   as_Spatial(
     ne_download(scale = 10, type = "lakes_europe", category = "physical")
   )
-)
+)}
 
+if (!exists("towns")){
 towns <- get_map(
   P1$gridded_data,
   as_Spatial(
     ne_download(scale = 10, type = "urban_areas", category = "cultural")
   )
-)
+)}
+
+if (!exists("roads")){
 roads <- get_map(
   P1$gridded_data,
   as_Spatial(
     ne_download(scale = 10, type = "roads", category = "cultural")
   ),
   polygon = FALSE
-)
+)}
+  
+if (!exists("my_coastlines")){
+    my_coastlines <- get_map(
+  P1$gridded_data,
+  as_Spatial(ne_download(scale = 10, type = "coastline", 
+                                 category = "physical")
+  ), 
+  polygon = FALSE
+  )}
+  
 ```
 
 Trim the experiment name for this special case
 
 ```{r}
+if(FALSE){
 exp_1 <- "MEPS"
 exp_2 <- "MEPS"
+}
 ```
 
 ### Deal with titles and labels:
@@ -457,13 +492,16 @@ if (what_1 == what_2){
 # Plot charts of P1, P2, and F(P1,P2)
     my_plot_chart(P1, 
                   title=paste(what_1,when_1,sep=" \n "),
-                  rivers=rivers,
-                  roads=roads,
+                  rivers=NULL,
+                  roads=NULL,
+                  towns = towns,
                   breaks = chart_breaks)
     my_plot_chart(P2, 
                   title=paste(what_2,when_2,sep=" \n "), 
-                  rivers=NULL,
+                  lakes=lakes,
+                  rivers=my_rivers,
                   roads=roads,
+                  coastlines = NULL,
                   breaks = chart_breaks)
     delta = P2
     delta$gridded_data <- delta$gridded_data - P1$gridded_data
@@ -472,6 +510,7 @@ if (what_1 == what_2){
                   rivers=NULL,
                   roads = roads,
                   lakes = lakes,
+                  coastlines = my_coastlines,
                   breaks=NULL
                   )
 ```

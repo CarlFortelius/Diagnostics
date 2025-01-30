@@ -183,15 +183,17 @@ df_combined <- rbind(transform(df1, vector = "hisvar_1"), transform(df2, vector 
 #data_root <- "/home/forteliu/DataFiles/MEPS/2023/06/26/00/mbr000"
 #data_root <- "/home/forteliusc/DataFiles/" 
 
-path_1 <- "/home/forteliu/DataFiles/cirrus"
-path_2 <- "/ec/res4/scratch/fnm"
+path_1 <- "/home/forteliusc" #DataFiles/cirrus/harmonie"
+path_2 <- "/home/forteliusc" #DataFiles/cirrus/harmonie"
+#path_2 <- "/ec/res4/scratch/fnm"
 
 
-exp_1 <- "MEPS_prod"
-exp_2 <- "MEPS_prod"
+exp_1 <- "Void"
+exp_2 <- "Void"
 
-file_key_1 <- paste(path_1, exp_1, "archive/2025/01/15/09/mbr000/ICMSHHARM+0006.sfx",sep="/")
-file_key_2 <- paste(path_1, exp_1, "archive/2025/01/15/09/mbr000/ICMSHHARM+0006.sfx",sep="/")
+file_key_1 <- paste(path_1, exp_1, "PGD_prel.fa",sep="/")
+file_key_2 <- paste(path_1, exp_1, "PGD_prel.fa",sep="/")
+#file_key_2 <- paste(path_1, exp_1, "archive/2025/01/15/09/mbr000/ICMSHHARM+0006.sfx",sep="/")
 
 files_1 <- system(paste("ls", file_key_1), intern=TRUE) #; print(files_1)
 files_2 <- system(paste("ls", file_key_2), intern=TRUE) #; print(files_2)
@@ -279,8 +281,12 @@ fa_name_2 <- str_pad(paste("CLSTEMPERATURE"), 16, 'right', pad=' ')
 fa_name_1 <- str_pad(paste("SFX.T2M"), 16, 'right', pad=' ')
 fa_name_2 <- str_pad(paste("SFX.T2M_ISBA"), 16, 'right', pad=' ')
 
+fa_name_1 <- str_pad(paste("SFX.ZS"), 16, 'right', pad=' ')
+fa_name_2 <- str_pad(paste("SFX.MAX_ZS"), 16, 'right', pad=' ')
+
+if (TRUE){
 Inventory_1 <- FAopen(files_1[1])$list$name
-#Inventory_2 <- FAopen(files_2[1])$list$name
+Inventory_2 <- FAopen(files_2[1])$list$name
 
 WGI <- Inventory_1[grep("WGI", Inventory_1)]
 T2M <- Inventory_1[grep("T2M", Inventory_1)]
@@ -291,16 +297,18 @@ VEG <- Inventory_1[grep("VEG", Inventory_1)]
 FLX <- Inventory_1[grep("FLUX", Inventory_1)]
 H  <- Inventory_1[grep("H", Inventory_1)]
 WAT <- Inventory_1[grep("WAT", Inventory_1)]
+ZS <- Inventory_1[grep("ZS", Inventory_1)]
+}
 
 #print (files)
 #print(plotvars)
-offset <- -273.15
+offset <- 0 #-273.15
 scale <- 1 #1./(3600*48)
 transformation <- "identity" #"abs"
 #Modifyers are applied according to the template: transformation(scale*x + offset)
 
 
-chart_breaks = NULL# c(-33,-32, -31, -30, -29, -28, -27, -26, -25, -24, -23, -22, -21)
+chart_breaks = c(0, 50, 100, 500,  1000, 1500, 2000, 2500)
 ```
 
 Set the domain:
@@ -308,7 +316,7 @@ Set the domain:
 ```{r}
 zclon <- 23.80
 zclat <- 60.50
-zrad <- 100#15#100
+zrad <- 0#15#100
 
 ```
 
@@ -361,9 +369,10 @@ for (i in seq_along(files_1)){
 
 Define physiographics:
 
-```{r, echo=FALSE, "Define physiographic characters, echo=FALSE"}}
-
+```{r, echo=FALSE, "Define physiographic characters, echo=FALSE"}
+#if(FALSE){
 # Download and reproject rivers, lakes, towns, roads data
+my_rivers <- NULL
 if (!exists("my_rivers")){
 my_rivers <- get_map(
   P1$gridded_data,
@@ -372,7 +381,7 @@ my_rivers <- get_map(
   ),
   polygon = FALSE
 )}
-
+lakes <- NULL
 if (!exists("lakes")){
 lakes <- get_map(
   P1$gridded_data,
@@ -381,6 +390,7 @@ lakes <- get_map(
   )
 )}
 
+towns <- NULL
 if (!exists("towns")){
 towns <- get_map(
   P1$gridded_data,
@@ -389,6 +399,7 @@ towns <- get_map(
   )
 )}
 
+roads <- NULL
 if (!exists("roads")){
 roads <- get_map(
   P1$gridded_data,
@@ -406,13 +417,13 @@ if (!exists("my_coastlines")){
   ), 
   polygon = FALSE
   )}
-  
+  #} #if FALSE end
 ```
 
 Trim the experiment name for this special case
 
 ```{r}
-if(FALSE){
+if(TRUE){
 exp_1 <- "MEPS"
 exp_2 <- "MEPS"
 }
@@ -494,13 +505,13 @@ if (what_1 == what_2){
                   title=paste(what_1,when_1,sep=" \n "),
                   rivers=NULL,
                   roads=NULL,
-                  towns = towns,
+                  towns = NULL,
                   breaks = chart_breaks)
     my_plot_chart(P2, 
                   title=paste(what_2,when_2,sep=" \n "), 
-                  lakes=lakes,
-                  rivers=my_rivers,
-                  roads=roads,
+                  lakes=NULL,
+                  rivers=NULL, #my_rivers,
+                  roads=NULL, 
                   coastlines = NULL,
                   breaks = chart_breaks)
     delta = P2
@@ -508,8 +519,8 @@ if (what_1 == what_2){
     my_plot_chart(delta, 
                   title=delta_title,
                   rivers=NULL,
-                  roads = roads,
-                  lakes = lakes,
+                  roads = NULL,
+                  lakes = NULL,
                   coastlines = my_coastlines,
                   breaks=NULL
                   )
@@ -532,5 +543,6 @@ my_plot_cumhisto2(P1,P2,label_1,label_2)
 
 ```{r, echo=FALSE, "Scatter plot"}
     my_plot_scatter(P1,P2,title=NULL, lable_1 = title_1, lable_2=title_2)
+   
 
 ```

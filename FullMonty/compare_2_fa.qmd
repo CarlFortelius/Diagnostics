@@ -20,6 +20,7 @@ library(dplyr)
 library(forcats) 
 library(scico) 
 library(Rfa) 
+library(Rgrib2)
 library(stringr)
 library(sf)
 library(rnaturalearth)
@@ -31,28 +32,46 @@ library(rnaturalearth)
 ```{r, echo=FALSE, "functions"}
 
 my_plot_chart <- function(pv,
-                          title = NULL,
-                          rivers = NULL,
-                          lakes = NULL,
-                          towns = NULL,
-                          roads = NULL,
-                          coastlines = NULL,
-                          breaks = NULL) {
+                          title          = NULL,
+                          rivers         = NULL,
+                          lakes          = NULL,
+                          towns          = NULL,
+                          roads          = NULL,
+                          coastlines     = NULL,
+                          breaks         = NULL,
+                          colorbar_title = NULL) {
 
   if (!is.null(breaks)) {
     common_scale <- scale_fill_viridis_c(
       option = "viridis",
       limits = c(min(breaks), max(breaks)),
-      breaks = breaks
-    )
+      breaks = breaks,
+      guide = guide_colorbar(
+            title = colorbar_title,
+            title.theme = element_text(size = 18, 
+                          face = "bold", 
+                          color = "black"),                  
+            label.theme = element_text(size = 18, 
+                          color = "black"))
+      )
   } else {
-    common_scale <- NULL
+    common_scale <- scale_fill_viridis_c(
+      option = "viridis",
+      guide = guide_colorbar(
+            title = colorbar_title,
+            title.theme = element_text(size = 18, 
+                          face = "bold", 
+                          color = "black"),                  
+            label.theme = element_text(size = 18, 
+                          color = "black"))
+      )
   }
 
-  p <- plot(pv) +  # Start building the plot here
+  p <- plot(pv, border="red",lwd=10) +  # Start building the plot here
     common_scale +
-    ggtitle(title)
-
+    ggtitle(title) +
+    theme(plot.title = element_text(size = 18, face = "bold", color = "black"))
+    
   # Conditional plotting of features
   if (!is.null(rivers)) {
      p <- p + geom_path(aes(x, y), data = my_rivers, colour = "blue", inherit.aes = FALSE)
@@ -71,7 +90,7 @@ my_plot_chart <- function(pv,
   }
   if(!is.null(coastlines)) {
     #coastline_sf <- st_as_sf(my_coastlines)
-    p <- p + geom_path(aes(x, y), data=coastlines, colour = "black")
+    p <- p + geom_path(aes(x, y), data=coastlines, colour = "grey")
   }
 
   
@@ -95,29 +114,44 @@ my_plot_chart <- function(pv,
      }
     
     
-    my_plot_histo2 <- function(pv1,pv2,label_1,label_2){
-   
+    my_plot_histo2 <- function(pv1,pv2, title, label_1,label_2){
+    #pv1     <- P1
+    #pv2     <- P2
+    #title   <- scattertitle
+    #label_1 <- scatterlab_1
+    #label_2 <- scatterlab_2
     hisdat <- data.frame(values = c(as.vector(pv1$gridded_data[[1]]),
                                     as.vector(pv2$gridded_data[[1]])),
-                          group = c(rep(paste(trimws(pv1$parameter),"1",
-                                    sep="_"),
-                                    length(pv1$gridded_data[[1]])),
-			                              rep(paste(trimws(pv2$parameter),"2",
-			                              sep="_"),
-			                              length(pv2$gridded_data[[1]]) )))
+                        group   = c(rep(label_1,
+                                        length(pv1$gridded_data[[1]])),
+			                              rep(label_2,
+			                                  length(pv2$gridded_data[[1]]))
+			                              )) 
+                        # c(rep(paste(trimws(pv1$parameter),"1",
+                        #            sep="_"),
+                        #            length(pv1$gridded_data[[1]])),
+			                     #         rep(paste(trimws(pv2$parameter),"2",
+			                     #         sep="_"),
+			                     #         length(pv2$gridded_data[[1]]) )))
 
     print(length(pv1$gridded_data[[1]]))
     print(length(pv2$gridded_data[[1]]))
     histo <- ggplot(hisdat, aes(x = values, fill = group)) +  # Draw overlaying histogram
              geom_histogram(position = "identity", alpha = 0.2, bins = 50) +
-             scale_y_log10()
-    print(histo)
+             scale_y_log10() +
+    #scale_color_manual(
+    #name = NULL, # Legend title
+    #labels = c(label_1, label_2)) + # Labels
+  theme(legend.position = "bottom") + 
+  ggtitle(title)
+     
+  print(histo)
     #print(paste("created ",paste(label_1,label_2,sep="&"),"_histo.png",sep=""))
     #dev.off()
     }
     
     
-    my_plot_cumhisto2 <- function(pv1,pv2,label_1,label_2){
+    my_plot_cumhisto2 <- function(pv1,pv2, title, label_1,label_2){
     # Deal with sub-domain:
     
       
@@ -137,8 +171,13 @@ df_combined <- rbind(transform(df1, vector = "hisvar_1"), transform(df2, vector 
 # Plot the cumulative distribution functions using geom_step
   cumhisto <- ggplot(df_combined, aes(x = x, y = cum_freq, color = vector)) +
   geom_step() +
-  labs(x = "Data", y = "Cumulative Frequency", title = "Cumulative Distribution Functions") +
-  scale_color_manual(values = c("hisvar_1" = "blue", "hisvar_2" = "red")) #+
+  labs(x = "Value", y = "Cumulative Frequency", title = title) +
+  scale_color_manual(
+    values = c("hisvar_1" = "red", "hisvar_2" = "blue"),
+    name = NULL, # Legend title
+    labels = c(label_1, label_2)) + # Labels
+  theme(legend.position = "bottom") + 
+  ggtitle(title)
   #scale_x_log10()
   print(cumhisto)   
    
@@ -163,8 +202,8 @@ df_combined <- rbind(transform(df1, vector = "hisvar_1"), transform(df2, vector 
                                       trim = TRUE),
         ) +
         geom_abline(intercept = 0, slope = 1, color = "black", linetype = "solid") +
-        labs(x = pv1$parameter, 
-             y = pv2$parameter, 
+        labs(x = lable_1, 
+             y = lable_2, 
              title = title)
 
 
@@ -183,17 +222,18 @@ df_combined <- rbind(transform(df1, vector = "hisvar_1"), transform(df2, vector 
 #data_root <- "/home/forteliu/DataFiles/MEPS/2023/06/26/00/mbr000"
 #data_root <- "/home/forteliusc/DataFiles/" 
 
-path_1 <- "/home/forteliusc" #DataFiles/cirrus/harmonie"
-path_2 <- "/home/forteliusc" #DataFiles/cirrus/harmonie"
-#path_2 <- "/ec/res4/scratch/fnm"
+#path_1 <- "/home/forteliu/DataFiles/cirrus"
+#path_1 <- "/ec/res4/scratch/fi3z/Helsinki_ilmastoriskit/forcings/"
+path_1 <- "/ec/res4/scratch/fnm/hm_home"
+path_2 <- "/ec/res4/scratch/fnm/"
 
 
-exp_1 <- "Void"
-exp_2 <- "Void"
+exp_1 <- "FMIUR_2"
+exp_2 <- "MEPS_prod"
 
-file_key_1 <- paste(path_1, exp_1, "PGD_prel.fa",sep="/")
-file_key_2 <- paste(path_1, exp_1, "PGD_prel.fa",sep="/")
-#file_key_2 <- paste(path_1, exp_1, "archive/2025/01/15/09/mbr000/ICMSHHARM+0006.sfx",sep="/")
+file_key_1 <- paste(path_1, exp_1, "archive/2024/08/27/00/ICMSHHARM+0012",sep="/")
+file_key_2 <- paste(path_2, exp_2, "archive/2024/08/27/00/ICMSHHARM+0012",sep="/")
+#file_key_2 <- paste(path_2, exp_2, "2024/08/27/00/fc2024082700+012grib2_mbr000",sep="/")
 
 files_1 <- system(paste("ls", file_key_1), intern=TRUE) #; print(files_1)
 files_2 <- system(paste("ls", file_key_2), intern=TRUE) #; print(files_2)
@@ -224,12 +264,6 @@ fa_name_2 <- str_pad(paste("SURFRESERV.NEIGE"), 16, 'right', pad=' ')
 fa_name_1 <- str_pad(paste("SURFPRESSION"), 16, 'right', pad=' ')
 fa_name_2 <- str_pad(paste("SURFPRESSION"), 16, 'right', pad=' ')
 
-
-fa_name_1 <- str_pad(paste("SURFINSPLUIE"), 16, 'right', pad=' ')
-fa_name_2 <- str_pad(paste("SURFINSPLUIE"), 16, 'right', pad=' ')
-
-fa_name_1 <- str_pad(paste("SURFACCPLUIE"), 16, 'right', pad=' ')
-fa_name_2 <- str_pad(paste("SURFACCPLUIE"), 16, 'right', pad=' ')
 
 fa_name_1 <- str_pad(paste("SURFNEBUL.BASSE"), 16, 'right', pad=' ')
 fa_name_2 <- str_pad(paste("SURFNEBUL.BASSE"), 16, 'right', pad=' ')
@@ -278,15 +312,25 @@ fa_name_2 <- str_pad(paste("SOMMFLU.RAY.SOLA"), 16, 'right', pad=' ')
 fa_name_1 <- str_pad(paste("CLSTEMPERATURE"), 16, 'right', pad=' ')
 fa_name_2 <- str_pad(paste("CLSTEMPERATURE"), 16, 'right', pad=' ')
 
-fa_name_1 <- str_pad(paste("SFX.T2M"), 16, 'right', pad=' ')
-fa_name_2 <- str_pad(paste("SFX.T2M_ISBA"), 16, 'right', pad=' ')
+fa_name_1 <- str_pad(paste("SFX.TS_SEA"), 16, 'right', pad=' ')
+fa_name_2 <- str_pad(paste("SFX.TS_SEA"), 16, 'right', pad=' ')
 
-fa_name_1 <- str_pad(paste("SFX.ZS"), 16, 'right', pad=' ')
-fa_name_2 <- str_pad(paste("SFX.MAX_ZS"), 16, 'right', pad=' ')
+fa_name_1 <- str_pad(paste("S065TEMPERATURE"), 16, 'right', pad=' ')
+fa_name_2 <- str_pad(paste("S065TEMPERATURE"), 16, 'right', pad=' ')
 
-if (TRUE){
+fa_name_1 <- str_pad(paste("SURFTEMPERATURE"), 16, 'right', pad=' ')
+fa_name_2 <- str_pad(paste("SURFTEMPERATURE"), 16, 'right', pad=' ')
+
+fa_name_1 <- str_pad(paste("SURFACCPLUIE"), 16, 'right', pad=' ')
+fa_name_2 <- str_pad(paste("SURFACCPLUIE"), 16, 'right', pad=' ')
+
+fa_name_1 <- str_pad(paste("SURFINSPLUIE"), 16, 'right', pad=' ')
+fa_name_2 <- str_pad(paste("SURFINSPLUIE"), 16, 'right', pad=' ')
+
+
+
 Inventory_1 <- FAopen(files_1[1])$list$name
-Inventory_2 <- FAopen(files_2[1])$list$name
+#Inventory_2 <- FAopen(files_2[1])$list$name
 
 WGI <- Inventory_1[grep("WGI", Inventory_1)]
 T2M <- Inventory_1[grep("T2M", Inventory_1)]
@@ -297,26 +341,25 @@ VEG <- Inventory_1[grep("VEG", Inventory_1)]
 FLX <- Inventory_1[grep("FLUX", Inventory_1)]
 H  <- Inventory_1[grep("H", Inventory_1)]
 WAT <- Inventory_1[grep("WAT", Inventory_1)]
-ZS <- Inventory_1[grep("ZS", Inventory_1)]
-}
+SEA <- Inventory_1[grep("SEA", Inventory_1)]
 
 #print (files)
 #print(plotvars)
-offset <- 0 #-273.15
-scale <- 1 #1./(3600*48)
+offset <- 0 # -273.15
+scale <- 3600. #1./(3600*48)
 transformation <- "identity" #"abs"
 #Modifyers are applied according to the template: transformation(scale*x + offset)
 
 
-chart_breaks = c(0, 50, 100, 500,  1000, 1500, 2000, 2500)
+chart_breaks = NULL #c( 0.25, 0.5, 1, 2, 4)
 ```
 
 Set the domain:
 
 ```{r}
-zclon <- 23.80
-zclat <- 60.50
-zrad <- 0#15#100
+zclon <- 25.80
+zclat <- 62.0
+zrad <- 250#15#100
 
 ```
 
@@ -334,23 +377,26 @@ for (i in seq_along(files_1)){
                                      0/(1e20-P1$gridded_data[[1]])) +
                        offset))
     
-    P2 <- read_grid( files_2[i], 
-                     fa_name_2, 
-                     file_format = "fa",
-                     data_frame = TRUE)#; print(P2)
-#    P2 <- read_grid( files_2[i], "z", "heightAboveGround", file_format = "grib")#; print(P2)
-#   P2 <- read_grid(files_2[i], "z",
-#                    file_format_opts = grib_opts(
-#         level_find = list(z = use_grib_typeOfLevel("heightAboveGround", 0))),
-#         file_format = "grib")#; print(P2)
+  #  P2 <- read_grid( files_2[i], 
+  #                   "myname", 
+  #                   file_format = "grib",
+  #                   file_format_opts = grib_opts(param_find = list(myname = use_grib_shortName("rprate")),
+  #                                                level_find = list(myname = use_grib_typeOfLevel("heightAboveGround", 0)),
+  #                                                step_find  = list(myname = use_grib_key("stepRange", "12"))
+  #                   ),
+  #                   data_frame = TRUE)#; print(P2)
+  #  P2$parameter <- fa_name_2
+    P2 <- read_grid( files_2[i], "z", "heightAboveGround", file_format = "grib")#; print(P2)
     P2$gridded_data[[1]] <-  do.call(transformation,
                         list(scale*(P2$gridded_data[[1]] + 
                                       0/(1e20-P2$gridded_data[[1]])) +
                         offset))
-    if (!identical(attributes(P1$gridded_data)$domain, 
+    if (true){ # Set to false for grib input 
+     if (!identical(attributes(P1$gridded_data)$domain, 
                    attributes(P2$gridded_data)$domain)){
-    P1$gridded_data <- regrid(P1$gridded_data,P2$gridded_data)
+    P1$gridded_data <- regrid(P1$gridded_data,P2$gridded_data[[1]])
     }
+}
     if (zrad > 0 ) {
     #stopifnot(length(zoom_centre) == 2)
     #stopifnot(is.numeric(zoom_centre))
@@ -369,10 +415,15 @@ for (i in seq_along(files_1)){
 
 Define physiographics:
 
-```{r, echo=FALSE, "Define physiographic characters, echo=FALSE"}
-#if(FALSE){
+```{r, echo=FALSE, "Define physiographic characters"}
+
+my_rivers     <- NULL
+lakes         <- NULL
+towns         <- NULL
+roads         <- NULL
+#my_coastlines <- NULL
+
 # Download and reproject rivers, lakes, towns, roads data
-my_rivers <- NULL
 if (!exists("my_rivers")){
 my_rivers <- get_map(
   P1$gridded_data,
@@ -381,7 +432,7 @@ my_rivers <- get_map(
   ),
   polygon = FALSE
 )}
-lakes <- NULL
+
 if (!exists("lakes")){
 lakes <- get_map(
   P1$gridded_data,
@@ -390,7 +441,6 @@ lakes <- get_map(
   )
 )}
 
-towns <- NULL
 if (!exists("towns")){
 towns <- get_map(
   P1$gridded_data,
@@ -399,7 +449,6 @@ towns <- get_map(
   )
 )}
 
-roads <- NULL
 if (!exists("roads")){
 roads <- get_map(
   P1$gridded_data,
@@ -417,13 +466,13 @@ if (!exists("my_coastlines")){
   ), 
   polygon = FALSE
   )}
-  #} #if FALSE end
+  
 ```
 
 Trim the experiment name for this special case
 
 ```{r}
-if(TRUE){
+if(FALSE){
 exp_1 <- "MEPS"
 exp_2 <- "MEPS"
 }
@@ -480,6 +529,33 @@ if (what_1 == what_2){
   )
 }
 
+scattertitle <- NULL
+scatterlab_1 <- NULL
+if (P1$parameter != P2$parameter){
+  scatterlab_1 <- paste0(scatterlab_1,P1$parameter)
+}else{
+    scattertitle <- paste0(scattertitle,P1$parameter)
+  }
+if (exp_1 != exp_2){
+  scatterlab_1 <- paste0(scatterlab_1,exp_1)
+}else{
+    scattertite <- paste0(scattertitle, exp_1)
+  }
+if (when_1 != when_2){
+  scatterlab_1 <- plaste0(scatterlab_1,when_1)
+}else{
+    scattertitle <- paste0(scattertitle,"\n",when_1)
+  }
+
+scatterlab_2 <- NULL
+if (P1$parameter != P2$parameter){
+  scatterlab_2 <- paste0(scatterlab_2,P1$parameter)}
+if (exp_1 != exp_2){
+  scatterlab_2 <- paste0(scatterlab_2,exp_2)}
+if (when_1 != when_2){
+  scatterlab_2 <- plaste0(scatterlab_2,when_2)}
+
+delta_title <- paste0(scatterlab_2," - ", scatterlab_1,"\n",scattertitle)
 ```
 
 ### Select common grid squares
@@ -506,21 +582,22 @@ if (what_1 == what_2){
                   rivers=NULL,
                   roads=NULL,
                   towns = NULL,
+                  coastlines = my_coastlines,
                   breaks = chart_breaks)
     my_plot_chart(P2, 
                   title=paste(what_2,when_2,sep=" \n "), 
                   lakes=NULL,
-                  rivers=NULL, #my_rivers,
-                  roads=NULL, 
-                  coastlines = NULL,
+                  rivers=NULL,
+                  roads=NULL,
+                  coastlines = my_coastlines,
                   breaks = chart_breaks)
     delta = P2
     delta$gridded_data <- delta$gridded_data - P1$gridded_data
     my_plot_chart(delta, 
                   title=delta_title,
                   rivers=NULL,
-                  roads = NULL,
-                  lakes = NULL,
+                  roads = roads,
+                  lakes = lakes,
                   coastlines = my_coastlines,
                   breaks=NULL
                   )
@@ -529,20 +606,21 @@ if (what_1 == what_2){
 #### histograms
 
 ```{r,, echo=FALSE, "Histograms"}
-    my_plot_histo2(P1, P2, title_1, title_2)    
+    my_plot_histo2(P1, P2, scattertitle, scatterlab_1, scatterlab_2)    
     my_plot_histo(delta,delta_title)
 ```
 
 #### cumulative histograms
 
 ```{r, echo=FALSE, "Cumulative histograms"}
-my_plot_cumhisto2(P1,P2,label_1,label_2)
+my_plot_cumhisto2(P1,P2, scattertitle, scatterlab_1, scatterlab_2)
 ```
 
 #### scatter plot
 
 ```{r, echo=FALSE, "Scatter plot"}
-    my_plot_scatter(P1,P2,title=NULL, lable_1 = title_1, lable_2=title_2)
-   
+    my_plot_scatter(P1,P2,title=scattertitle,
+                    lable_1 = scatterlab_1,
+                    lable_2 = scatterlab_2)
 
 ```

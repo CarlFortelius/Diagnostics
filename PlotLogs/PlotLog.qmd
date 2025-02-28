@@ -243,7 +243,7 @@ get_data <- function(logfile){
   if( TRUE)  { #file.exists(logfile)){
     print(paste("working with file: ",basename(logfile)))
     HM_DATE <- try(unlist( strsplit(html_text(
-    read_html(x = logfile,encoding="UTF-8")), '\n')))
+    read_html(x = logfile,encoding="UTF-8", options="HUGE")), '\n')))
     #cost <- get_cost_functions(HM_DATE)
     spectral <- try(get_spectral_norms(HM_DATE))
     gridpoint <- try(get_grid_point_norms(HM_DATE))
@@ -444,7 +444,7 @@ Read html logfile produced by Harmonie-arome into memory as text. Files can be l
 if (FALSE) {
 logfile <- "https://metcoop.smhi.se/monitoring/msms/data/meps/HM_Date_2023030912_1_se.html"
 logfile <- "/ec/res4/scratch/sbjb/hm_home/mc_preop_baseline/archive/log/HM_Date_2023090412.html"
-HM_DATE <- unlist( strsplit(html_text(read_html(x = logfile, encoding="UTF-8")), '\n'))
+HM_DATE <- unlist( strsplit(html_text(read_html(x = logfile, encoding="UTF-8", options="HUGE")), '\n'))
 specimen <- get_cost_functions(HM_DATE)
 }
 ```

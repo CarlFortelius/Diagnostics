@@ -396,6 +396,7 @@ output$update_info <- renderText({
       meta  <- tibble(prefix=input$prefix, postfix=input$postfix, path=input$path, 
                 start=input$start, end=input$end, by=input$by)
      RDS_dir <- paste(here(),"RDS/",sep="/")
+     system(paste("mkdir -p", RDS_dir))                       
      filename <- paste( #paste( tail(unlist(strsplit(meta$path,"/")),n=1),
                         paste(basename(meta$path),
                         #      basename(dirname(meta$path)),

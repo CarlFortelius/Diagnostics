@@ -244,6 +244,7 @@ get_data <- function(logfile){
     print(paste("working with file: ",basename(logfile)))
     HM_DATE <- try(unlist( strsplit(html_text(
     read_html(x = logfile,encoding="UTF-8", options="HUGE")), '\n')))
+    #read_html(x = logfile,encoding="UTF-8")), '\n')))
     #cost <- get_cost_functions(HM_DATE)
     spectral <- try(get_spectral_norms(HM_DATE))
     gridpoint <- try(get_grid_point_norms(HM_DATE))
@@ -265,14 +266,18 @@ Define the client side
 
 ```{r }
 #Define the client side
+today <- Sys.Date()
+today_string <- format(today, "%Y%m%d00")
+date_30_days_ago <- today - 30
+date_30_days_ago_string <- format(date_30_days_ago, "%Y%m%d00")
 ui <- fluidPage(
   #theme = shinytheme("darkly"),
   sidebarLayout(
     sidebarPanel(
       textInput("start", "DTGSTART",
-         "2023031500"),
+         date_30_days_ago_string),
       textInput("end", "DTGEND",
-         "2023031600"),
+         today_string),
       textInput("by", "BY HOURS",
          "24"),
       textInput("path", "PATH",
@@ -317,7 +322,6 @@ Define the server side
 # Define the server side
 #| context: server
 server <- function(input, output,session) {
-
     #shinyDirChoose(input, 'folder', roots=c(wd='.'), filetypes=c('', 'html, txt'))
     #observe({
      #print(input$folder)})

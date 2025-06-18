@@ -9,6 +9,7 @@ format:
 server: shiny
 editor: visual
 author: Carl Fortelius, v0 March 2023
+version: June 2025
 ---
 
 ## Quarto
@@ -25,19 +26,80 @@ Here load needed libraries
 
 ```{r initialize}
 #library(harp)
-library(tidyverse)
-library(here)
-library(XML)
-library(rvest)
-library(hms)
-library(stringr)        
-library(httr)
-library(dplyr)
-library(ggplot2)
-library(tidyr)
-library(shiny)
-library(shinyFiles)
-#library(shinythemes)
+
+# List of required packages
+required_packages <- c(
+"tidyverse",
+"here",
+"XML",
+"rvest",
+"hms",
+"stringr",        
+"httr",
+"dplyr",
+"ggplot2",
+"patchwork",
+"tidyr",
+"shiny",
+"shinyFiles",
+"shinythemes"
+)
+
+# Function to check and install missing packages
+install_missing_packages <- function(packages) {
+  # Get list of installed packages
+  installed_packages <- rownames(installed.packages())
+  
+  # Find missing packages
+  missing_packages <- packages[!packages %in% installed_packages]
+  
+  if (length(missing_packages) > 0) {
+    cat("Installing missing packages:", paste(missing_packages, collapse = ", "), "\n")
+    
+    # Install missing packages
+    install.packages(missing_packages, dependencies = TRUE)
+    
+    cat("Installation complete!\n")
+  } else {
+    cat("All required packages are already installed.\n")
+  }
+}
+
+# Run the installation check
+install_missing_packages(required_packages)
+
+# Function to load all required packages
+load_packages <- function(packages) {
+  cat("Loading packages...\n")
+  
+  for (pkg in packages) {
+    if (require(pkg, character.only = TRUE, quietly = TRUE)) {
+      cat("✓", pkg, "loaded successfully\n")
+    } else {
+      cat("✗ Failed to load", pkg, "\n")
+    }
+  }
+  
+  cat("Package loading complete!\n")
+}
+
+# Load all required packages
+load_packages(required_packages)
+
+#library(tidyverse)
+#library(here)
+#library(XML)
+#library(rvest)
+#library(hms)
+#library(stringr)        
+#library(httr)
+#library(dplyr)
+#library(ggplot2)
+#library(patchwork)
+#library(tidyr)
+#library(shiny)
+#library(shinyFiles)
+##library(shinythemes)
 
 ```
 
@@ -115,6 +177,119 @@ if ( any(str_detect(HM_DATE, "4DVminim")) ) {
   return() }
 }
 #sapply(idx, function(idx) HM_DATE[[idx]])
+```
+
+Define a function to return a tibble of full-pos gp norms (surface) parsed from HM_DATE
+
+```{r}
+get_fpgp_norms <- function(HM_DATE){
+  
+##Find where the Forecast log starts
+#idf <- which(str_detect(HM_DATE, "Forecasting/Forecast"))[2]
+##Find lines with value of NSTEP, and select those where NSTEP>0
+#idx <- which(str_detect(HM_DATE, "FULL-POS GPNORMS"))
+#idx <- idx[idx > idf]
+#idx <- idx[ which(sapply(idx, function(idx) 
+#       as.numeric(str_extract_all(HM_DATE[[idx]],"\\(?[0-9,.]+\\)?")[[1]][[2]]) ) >0)  ]
+#
+
+ fpnorm_ids <- c("SURFTEMPERATURE",
+                 "INTSURFGEOPOTENT",  
+ "SURFRESERV.NEIGE",
+ "SURFTENS.TURB.ZO",
+ "SURFTENS.TURB.ME",
+ "SOMMFLU.RAY.SOLA",
+ "SURFFLU.RAY.SOLA",
+ "SOMMFLU.RAY.THER",
+ "SURFFLU.RAY.THER",
+ "SURFFLU.LAT.MEVA",
+ "SURFFLU.LAT.MSUB",
+ "SURFFLU.MEVAP.EA",
+ "SURFFLU.MSUBL.NE",
+ "SURFFLU.CHA.SENS",
+ "SURFRAYT SOLA DE",
+ "SURFRAYT THER DE",
+ "SOMMRAYT SOL CL ",
+ "SOMMRAYT THER CL",
+ "SURFRAYT DIR SUR",
+ "TOPRAYT DIR SOM ",
+ "SURFDIR NORM IRR",
+ "SURFACCPLUIE    ",
+ "SURFACCNEIGE    ",
+ "SURFACCGRAUPEL  ",
+ "CLSTEMPERATURE  ",
+ "CLSHUMI.RELATIVE",
+ "CLSHUMI.SPECIFIQ",
+ "CLSVENT.ZONAL   ",
+ "CLSVENT.MERIDIEN",
+ "CLSU.RAF.MOD.XFU",
+ "CLSV.RAF.MOD.XFU",
+ "CLSMAXI.TEMPERAT",
+ "CLSMINI.TEMPERAT",
+ "SURFNEBUL.CONVEC",
+ "SURFNEBUL.HAUTE ",
+ "SURFNEBUL.MOYENN",
+ "SURFNEBUL.BASSE ",
+ "SURFNEBUL.TOTALE",
+ "CLPMHAUT.MOD.XFU",
+ "SURFDIAGHAIL    ",
+ "SURFINSPLUIE    ",
+ "SURFINSNEIGE    ",
+ "SURFINSGRAUPEL  ")
+
+# Initialize an empty tibble with the desired columns
+tibble <- tibble(
+  fpnorm  = character(),
+  ave = numeric(),
+  min = numeric(),
+  max = numeric()
+)
+
+# Loop over each pattern and process matching lines
+for (pattern in fpnorm_ids) {
+  # Find lines matching the current pattern
+  matching_lines <- grep(paste0("^ ", pattern), HM_DATE, value = TRUE)
+  
+  # Process each matching line
+  for (line in matching_lines) {   # Extract the Identifier (everything up to the colon)
+    identifier <- sub(":.*", "", line)  # Remove everything after the colon
+
+    # Extract the numerical values using regex
+    numerical_values <- as.numeric(unlist(regmatches(line, gregexpr("[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?", line))))
+    
+    # Add a new row to the tibble
+tibble <- tibble %>%
+      add_row(
+        fpnorm = identifier,
+        ave = numerical_values[1],
+        min = numerical_values[2],
+        max = numerical_values[3]
+      )
+  }
+}
+tibble <- tibble %>%
+  group_by(fpnorm) %>%
+  mutate(STEP = row_number()-1) %>% #the first instance if fc0h
+  ungroup()
+
+# Reshape the data into long format
+tibble <- tibble %>%
+  pivot_longer(
+    cols = c("ave", "min", "max"),  # Columns to pivot
+    names_to = "Variable",       # New column for variable names
+    values_to = "Value"          # New column for values
+  )
+
+# Reshape to match other norms
+tibble <- tibble %>%
+  pivot_wider(
+    names_from = c(fpnorm, Variable),
+    values_from = Value,
+    names_sep = "_"  # This concatenates fpnorm and Variable with an underscore
+  )
+
+return(tibble)
+}
 
 ```
 
@@ -236,7 +411,7 @@ sapply(dtgs, function(x)
 
 ```
 
-Define a function get_data to access a HM_date-file and return a list of tibbles containing spectral norms and grid-point norms.
+Define a function get_data to access a HM_date-file and return a list of tibbles containing spectral norms and grid-point norms and Surface FullPos norms.
 
 ```{r}
 get_data <- function(logfile){
@@ -248,9 +423,10 @@ get_data <- function(logfile){
     #cost <- get_cost_functions(HM_DATE)
     spectral <- try(get_spectral_norms(HM_DATE))
     gridpoint <- try(get_grid_point_norms(HM_DATE))
-    if(nrow(spectral) > 0 & nrow(gridpoint) > 0) {
+    fullposgp <- try(get_fpgp_norms(HM_DATE))
+    if(nrow(spectral) > 0 & nrow(gridpoint) > 0 & nrow(fullposgp) > 0) {
         #print(basename(logfile))  
-        return(list(spectral,gridpoint)) 
+        return(list(spectral, gridpoint, fullposgp)) 
     } else { 
         print(paste("Skipping bad or non-existing file",basename(logfile))) 
         return()
@@ -274,18 +450,19 @@ ui <- fluidPage(
   #theme = shinytheme("darkly"),
   sidebarLayout(
     sidebarPanel(
-      textInput("start", "DTGSTART",
-         date_30_days_ago_string),
-      textInput("end", "DTGEND",
-         today_string),
+      textInput("start", "DTGSTART", "2024060300"),
+#         date_30_days_ago_string),
+      textInput("end", "DTGEND", "2024060321"),
+#         today_string),
       textInput("by", "BY HOURS",
-         "24"),
+         "3"),
       textInput("path", "PATH",
-         "https://metcoop.smhi.se/monitoring/msms/data/meps/"),
+         #"https://metcoop.smhi.se/monitoring/msms/data/meps/"),
+         "/ec/res4/scratch/sbjb/hm_home/cerise_ref/archive/log/"),
       textInput("prefix", "PREFIX",
          "HM_Date_"),
       textInput("postfix", "POSTFIX",
-         "_1_se.html"),
+         ".html"),#,"_1_se.html"),
       
       actionButton("read", "Load"),
       textOutput("update_info"),
@@ -299,10 +476,16 @@ ui <- fluidPage(
             selectInput("gpnorms", "Grid point norm", 
                     choices = c(NULL))
          ), 
+         tabPanel("Surface FullPos norms",
+            selectInput("fpgpnorms", "FullPos surface norm", 
+                    choices = c(NULL))
+         ), 
       ), #tabset panel
    
       selectInput("showzero", "Show zero Y", 
                     choices = c("yes","no") ),
+#      selectInput("show_surface_minmax", "Show surface norm min/max", 
+#                    choices = c("yes","no") ),
       
       actionButton("go", "Plot"),
  
@@ -369,16 +552,25 @@ output$update_info <- renderText({
     #  HM_DATE <- unlist( strsplit(html_text(read_html(x = input$logfile)), '\n'))
     # filename <- "test"# basename(input$logfile) 
     print("Loading, be patient...")
-    ldata <- compact(lapply(make_date_list(start=input$start, end=input$end,
+  
+#    input <- list(start="2024080200", end="2024080200", by="24",
+#              path="/ec/res4/scratch/sbjb/hm_home/cerise_test_unified/archive/log/",
+#              prefix="HM_Date_", 
+#              postfix=".html",
+#              tabset ="FullPos surface norms",
+#              fpgpnorms="SURFTEMPERATURE /MET_NOR",
+#              showzero="no")
+   
+      
+     ldata <- compact(lapply(make_date_list(start=input$start, end=input$end,
                             by=input$by, path=input$path, prefix=input$prefix, 
                             postfix=input$postfix),
                             get_data) )  
-
     rows1 <- sapply(ldata, function(x)  nrow(x[[1]]) )
     rows2 <- sapply(ldata, function(x)  nrow(x[[2]]) )
-    expected <- max(rows1)
-    ldata[rows1 < expected | rows1 < expected] <- NULL
-    compact(ldata)
+    rows3 <- sapply(ldata, function(x)  nrow(x[[3]]) )
+    ldata[rows1 < max(rows1) | rows2 < max(rows2) | rows3 < max(rows3)] <- NULL
+    ldata <- compact(ldata)
     
     spectral <- as_tibble(sapply(names(ldata[[1]][[1]]), function(x) 
                               rowMeans(sapply(ldata, function(y) y[[1]][[x]]))
@@ -391,6 +583,13 @@ output$update_info <- renderText({
                              ))
     updateSelectInput(session, "gpnorms",
            choices = attr( gridpoint,"names")) # current selection
+
+    fullposgp <- as_tibble(sapply(names(ldata[[1]][[3]]), function(x) 
+                              rowMeans(sapply(ldata, function(y) y[[3]][[x]]))
+                             ))
+    updateSelectInput(session, "fpgpnorms",
+           choices = attr( fullposgp,"names")) # current selection
+     
      
      # Save metdata and norms into RDS
       meta  <- tibble(prefix=input$prefix, postfix=input$postfix, path=input$path, 
@@ -403,38 +602,51 @@ output$update_info <- renderText({
                         meta$prefix,
                         meta$start,meta$end,meta$by,sep="_"),
                         ".rds",sep="")
-     object <- list(meta=meta, gridpoint=gridpoint, spectral=spectral)     
-     names(object) <- c("meta", "gridpoint", "spectral")
+     object <- list(meta=meta, 
+                    gridpoint=gridpoint, 
+                    spectral=spectral, 
+                    fullposgp=fullposgp)     
+     names(object) <- c("meta", "gridpoint", "spectral", "fullposgp")
      saveRDS(object, paste(RDS_dir,filename,sep=""))
         
   #})    
   #print("Boarding completed")
 
   output$plot <- renderPlot({
-    if (v$doPlot == FALSE) return()
+    if (v$doPlot == FALSE) return()      
        if (input$tabset == "Spectral norms") {
         specimen <- spectral
         Y <- input$spnorms
+        time_index <- "NSTEP"
         linecolour <- "blue"      
-
-      
 
       } else if (input$tabset == "Grid point norms"){
         specimen <- gridpoint
         Y <- input$gpnorms
-        linecolour <- "red"
+        time_index <- "NSTEP"
+        linecolour <- "blue"
+      } else if (input$tabset == "Surface FullPos norms"){
+        specimen <- fullposgp
+        Y <- input$fpgpnorms
+        time_index <- "STEP"
+        linecolour <- "blue"
       } 
     
        p <- ggplot() + 
-        geom_line(data = specimen, aes(x = NSTEP, y = .data[[Y]]), 
+        geom_line(data = specimen, aes(x = .data[[time_index]], y = .data[[Y]]), 
                                        colour = linecolour) +
         ylab(Y) + 
         ggtitle(paste( input$path,input$prefix,"yyyymmddhh",input$postfix,"\n",
                   input$start,"-",input$end," by ",input$by," hours", sep=""))
        if (input$showzero =="yes"){
           p <- p + expand_limits(x = 0, y = 0)}
-       p
-  }) #RenderPlot
+       
+       
+       
+     if (input$showzero =="yes"){
+          p <- p + expand_limits(x = 0, y = 0)}
+    p
+    }) # render plot       
    print("Loading completed")
 } ) #RenderText
 }
@@ -448,7 +660,7 @@ Read html logfile produced by Harmonie-arome into memory as text. Files can be l
 #logfile <- '/home/forteliu/Bologna/hm_home/cy46_NYLAND750/archive/log/HM_Date_2022081500.html'
 if (FALSE) {
 logfile <- "https://metcoop.smhi.se/monitoring/msms/data/meps/HM_Date_2023030912_1_se.html"
-logfile <- "/ec/res4/scratch/sbjb/hm_home/mc_preop_baseline/archive/log/HM_Date_2023090412.html"
+logfile <- "/ec/res4/scratch/sbjb/hm_home/cerise_test_unified/archive/log/HM_Date_2024080200.html"
 HM_DATE <- unlist( strsplit(html_text(read_html(x = logfile, encoding="UTF-8", options="HUGE")), '\n'))
 specimen <- get_cost_functions(HM_DATE)
 }

@@ -549,7 +549,7 @@ output$update_info <- renderText({
     print("Loading, be patient...")
   
 #    input <- list(start="2024080200", end="2024080200", by="24",
-#              path="/ec/res4/scratch/sbjb/hm_home/cerise_test_unified/archive/log/",
+#              path=" ",
 #              prefix="HM_Date_", 
 #              postfix=".html",
 #              tabset ="FullPos surface norms",

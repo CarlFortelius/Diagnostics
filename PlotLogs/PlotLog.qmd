@@ -260,7 +260,7 @@ for (pattern in fpnorm_ids) {
     # Add a new row to the tibble
 tibble <- tibble %>%
       add_row(
-        fpnorm = identifier,
+        fpnorm = trimws(identifier),
         ave = numerical_values[1],
         min = numerical_values[2],
         max = numerical_values[3]
@@ -548,16 +548,16 @@ output$update_info <- renderText({
     # filename <- "test"# basename(input$logfile) 
     print("Loading, be patient...")
   
-#    input <- list(start="2024080200", end="2024080200", by="24",
-#              path=" ",
+#    input <- list(start="2025061600", end="2025061606", by="3",
+#              path="https://metcoop.smhi.se/monitoring/msms/data/meps/",
 #              prefix="HM_Date_", 
-#              postfix=".html",
+#              postfix="_1_se.html",
 #              tabset ="FullPos surface norms",
-#              fpgpnorms="SURFTEMPERATURE /MET_NOR",
+#              fpgpnorms="SURFTEMPERATURE /METCOOP_ave",
 #              showzero="no")
    
       
-     ldata <- compact(lapply(make_date_list(start=input$start, end=input$end,
+    ldata <- compact(lapply(make_date_list(start=input$start, end=input$end,
                             by=input$by, path=input$path, prefix=input$prefix, 
                             postfix=input$postfix),
                             get_data) )  
@@ -634,11 +634,6 @@ output$update_info <- renderText({
         ggtitle(paste( input$path,input$prefix,"yyyymmddhh",input$postfix,"\n",
                   input$start,"-",input$end," by ",input$by," hours", sep=""))
        if (input$showzero =="yes"){
-          p <- p + expand_limits(x = 0, y = 0)}
-       
-       
-       
-     if (input$showzero =="yes"){
           p <- p + expand_limits(x = 0, y = 0)}
     p
     }) # render plot       

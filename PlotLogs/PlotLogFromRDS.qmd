@@ -165,8 +165,11 @@ v <- reactiveValues(doPlot = FALSE,
     } else {
       numfiles <<- nrow(infile)
     }
-    Data <- lapply(input$file$datapath, read_one_file) 
-
+    path_to_data <- input$file$datapath
+    Data <- lapply(path_to_data, read_one_file) 
+#    if (length(input$file$datapath) == 1) {
+#      Data <- list(Data)  # Wrap single result in another list
+#    }
       updateSelectInput(session, "spnorms",
            choices = attr( Data[[1]]$spectral,"names")) # current selection
 
@@ -197,10 +200,11 @@ v <- reactiveValues(doPlot = FALSE,
         time_index <- "STEP"
       } 
  
-     lista <- lapply(Data, function(x) tibble(id=x$meta$prefix, NSTEP=x[[specimen]][[time_index]], 
+     lista <- lapply(Data, function(x) tibble(id=x$meta$prefix, 
+                                        NSTEP=x[[specimen]][[time_index]], 
                                          NORM=x[[specimen]][[Y]]))
      TOC <- sapply(Data, function(x) paste(x$meta$start,"-",x$meta$end,
-                                            " by ", x$meta$by," hours",": ",
+                                           " by ", x$meta$by," hours",": ",
                                            basename(x$meta$path), " \n",sep="") )
 
      # Define color palette without yellow
@@ -217,7 +221,7 @@ v <- reactiveValues(doPlot = FALSE,
   
        if (input$showzero =="yes"){
           P<- P + expand_limits(x = 0, y = 0)}
-
+ 
 P
 
 

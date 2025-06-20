@@ -9,6 +9,7 @@ format:
 server: shiny
 editor: visual
 author: Carl Fortelius, v0 March 2023
+version: June 2025
 ---
 
 ## Quarto
@@ -136,9 +137,12 @@ ui <- fluidPage(
       ), #tabset panel
    
       selectInput("showzero", "Show zero Y", 
-                    choices = c("yes","no") ,selected="no"),
-    
-     # actionButton("go", "Plot"),
+                    choices = c("yes","no") ),
+      
+      selectInput("incremental", "Show increments of norms", 
+                    choices = c("no","yes") ),
+      
+      actionButton("go", "Plot"),
  
     ), #sidebarPanel
     mainPanel(
@@ -199,10 +203,17 @@ v <- reactiveValues(doPlot = FALSE,
         Y <- input$fpgpnorms
         time_index <- "STEP"
       } 
- 
+     ylab <- Y
      lista <- lapply(Data, function(x) tibble(id=x$meta$prefix, 
                                         NSTEP=x[[specimen]][[time_index]], 
-                                         NORM=x[[specimen]][[Y]]))
+                                        NORM=x[[specimen]][[Y]]
+                                         ))
+    if (input$incremental=="yes"){
+      ylab <- paste("Incremental",Y,sep=" ")
+      lista <- lapply(lista, function(x) x |> mutate(NORM=c(NA, diff(NORM)))
+             )}
+
+     
      TOC <- sapply(Data, function(x) paste(x$meta$start,"-",x$meta$end,
                                            " by ", x$meta$by," hours",": ",
                                            basename(x$meta$path), " \n",sep="") )
@@ -215,7 +226,7 @@ v <- reactiveValues(doPlot = FALSE,
      P <- ggplot(bind_rows(lista, .id="df"), aes(NSTEP, NORM, colour=df)) + 
        scale_color_manual(values = color_palette)  +
   geom_line() +
-  ylab(Y) + 
+  ylab(ylab) + 
   xlab(time_index) +
   ggtitle(paste(TOC,collapse=""))
   
@@ -223,18 +234,6 @@ v <- reactiveValues(doPlot = FALSE,
           P<- P + expand_limits(x = 0, y = 0)}
  
 P
-
-
-#} 
-   
-#       p <- ggplot() + 
-#        geom_line(data = specimen, aes(x = NSTEP, y = .data[[Y]]), 
-#                                       colour = linecolour) +
-#        ylab(Y) + 
-#        ggtitle(paste( input$path,input$prefix,"yyyymmddhh",input$postfix,"\n",
-#                  input$start,"-",input$end," by ",input$by," hours", sep=""))
-
-#       P
   }) #RenderPlot
 }) # observe event input$tabset
  }) # observe event input$file

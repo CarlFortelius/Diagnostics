@@ -249,7 +249,6 @@ tibble <- tibble(
 for (pattern in fpnorm_ids) {
   # Find lines matching the current pattern
   matching_lines <- grep(paste0("^ ", pattern), HM_DATE, value = TRUE)
-  
   # Process each matching line
   for (line in matching_lines) {   # Extract the Identifier (everything up to the colon)
     identifier <- sub(":.*", "", line)  # Remove everything after the colon
@@ -479,8 +478,9 @@ ui <- fluidPage(
    
       selectInput("showzero", "Show zero Y", 
                     choices = c("yes","no") ),
-#      selectInput("show_surface_minmax", "Show surface norm min/max", 
-#                    choices = c("yes","no") ),
+      
+      selectInput("incremental", "Show increments of norms", 
+                    choices = c("no","yes") ),
       
       actionButton("go", "Plot"),
  
@@ -548,7 +548,7 @@ output$update_info <- renderText({
     # filename <- "test"# basename(input$logfile) 
     print("Loading, be patient...")
   
-#    input <- list(start="2025061600", end="2025061606", by="3",
+#    input <- list(start="2025061900", end="2025061900", by="3",
 #              path="https://metcoop.smhi.se/monitoring/msms/data/meps/",
 #              prefix="HM_Date_", 
 #              postfix="_1_se.html",
@@ -564,8 +564,20 @@ output$update_info <- renderText({
     rows1 <- sapply(ldata, function(x)  nrow(x[[1]]) )
     rows2 <- sapply(ldata, function(x)  nrow(x[[2]]) )
     rows3 <- sapply(ldata, function(x)  nrow(x[[3]]) )
+    print(paste("Max steps present:",max(rows1), max(rows2), max(rows3), sep=" "))
+    print(paste("Removing ", 
+    length(ldata[rows1 < max(rows1) | rows2 < max(rows2) | rows3 < max(rows3)]),
+    " forecast cycles with too few steps",sep=""))
     ldata[rows1 < max(rows1) | rows2 < max(rows2) | rows3 < max(rows3)] <- NULL
-    ldata <- compact(ldata)
+
+    columns1 <- sapply(ldata, function(x)  ncol(x[[1]]) )
+    columns2 <- sapply(ldata, function(x)  ncol(x[[2]]) )
+    columns3 <- sapply(ldata, function(x)  ncol(x[[3]]) )
+    print(paste("Max parameters present:",max(columns1), max(columns2), max(columns3), sep=" "))
+    print(paste("Removing ", 
+    length(ldata[columns1 < max(columns1) | columns2 < max(columns2) | columns3 < max(columns3)]),
+    " forecast cycles with too few parameters",sep=""))
+    ldata[columns1 < max(columns1) | columns2 < max(columns2) | columns3 < max(columns3)] <- NULL
     
     spectral <- as_tibble(sapply(names(ldata[[1]][[1]]), function(x) 
                               rowMeans(sapply(ldata, function(y) y[[1]][[x]]))
@@ -625,12 +637,17 @@ output$update_info <- renderText({
         Y <- input$fpgpnorms
         time_index <- "STEP"
         linecolour <- "blue"
-      } 
-    
+      }
+    ylab <- Y
+    if(input$incremental=="yes"){
+      specimen <- specimen |> mutate(across(all_of(Y), ~ c(NA, diff(.))))
+      ylab <- paste("Incremental", Y,sep=" ")
+      linecolor <- "red"
+    }
        p <- ggplot() + 
         geom_line(data = specimen, aes(x = .data[[time_index]], y = .data[[Y]]), 
                                        colour = linecolour) +
-        ylab(Y) + 
+        ylab(ylab) + 
         ggtitle(paste( input$path,input$prefix,"yyyymmddhh",input$postfix,"\n",
                   input$start,"-",input$end," by ",input$by," hours", sep=""))
        if (input$showzero =="yes"){
@@ -650,7 +667,6 @@ Read html logfile produced by Harmonie-arome into memory as text. Files can be l
 #logfile <- '/home/forteliu/Bologna/hm_home/cy46_NYLAND750/archive/log/HM_Date_2022081500.html'
 if (FALSE) {
 logfile <- "https://metcoop.smhi.se/monitoring/msms/data/meps/HM_Date_2023030912_1_se.html"
-logfile <- "/ec/res4/scratch/sbjb/hm_home/cerise_test_unified/archive/log/HM_Date_2024080200.html"
 HM_DATE <- unlist( strsplit(html_text(read_html(x = logfile, encoding="UTF-8", options="HUGE")), '\n'))
 specimen <- get_cost_functions(HM_DATE)
 }

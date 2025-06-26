@@ -414,27 +414,38 @@ Define a function get_data to access a HM_date-file and return a list of tibbles
 
 ```{r}
 get_data <- function(logfile){
-  if( TRUE)  { #file.exists(logfile)){
     print(paste("working with file: ",basename(logfile)))
     HM_DATE <- try(unlist( strsplit(html_text(
-    read_html(x = logfile,encoding="UTF-8", options="HUGE")), '\n')))
+    read_html(x = logfile,encoding="UTF-8", options="HUGE")), '\n')),silent=TRUE)
+    if (inherits(HM_DATE, "try-error")) {
+      # Handle error case
+      cat("Error occurred reading HM_DATE, continuing...\n")
+  } else { 
     #read_html(x = logfile,encoding="UTF-8")), '\n')))
     #cost <- get_cost_functions(HM_DATE)
-    spectral <- try(get_spectral_norms(HM_DATE))
-    gridpoint <- try(get_grid_point_norms(HM_DATE))
-    fullposgp <- try(get_fpgp_norms(HM_DATE))
-    if(nrow(spectral) > 0 & nrow(gridpoint) > 0 & nrow(fullposgp) > 0) {
+    spectral <- try(get_spectral_norms(HM_DATE),silent=TRUE)
+    if (inherits(spectral, "try-error")) {
+      # Handle error case
+      cat("Error occurred evaluating spectral norms, continuing...\n")
+  } 
+    gridpoint <- try(get_grid_point_norms(HM_DATE), silent=TRUE)
+    if (inherits(gridpoint, "try-error")) {
+      # Handle error case
+      cat("Error occurred evaluating gridpoint norms, continuing...\n")
+  } 
+    fullposgp <- try(get_fpgp_norms(HM_DATE), silent=TRUE)
+    if (inherits(fullposgp, "try-error")) {
+      # Handle error case
+      cat("Error occurred evaluating fullposgp norms, continuing...\n")
+  } 
+    if(!(inherits(spectral, "try-error") | 
+       inherits(gridpoint, "try-error") |
+       inherits(fullposgp, "try-error"))){
         #print(basename(logfile))  
         return(list(spectral, gridpoint, fullposgp)) 
-    } else { 
-        print(paste("Skipping bad or non-existing file",basename(logfile))) 
-        return()
       }
-  } else {
-      print(paste("Skipping non-existent file",basename(logfile)))
-      return()
   }
-} 
+}
 ```
 
 Define the client side
@@ -548,14 +559,15 @@ output$update_info <- renderText({
     # filename <- "test"# basename(input$logfile) 
     print("Loading, be patient...")
   
-#    input <- list(start="2025061900", end="2025061900", by="3",
-#              path="https://metcoop.smhi.se/monitoring/msms/data/meps/",
-#              prefix="HM_Date_", 
-#              postfix="_1_se.html",
-#              tabset ="FullPos surface norms",
-#              fpgpnorms="SURFTEMPERATURE /METCOOP_ave",
-#              showzero="no")
-   
+    if (FALSE){
+      input <- list(start="2025061415", end="2025061415", by="3",
+              path="https://metcoop.smhi.se/monitoring/msms/data/meps2_preop/",
+              prefix="HM_Date_", 
+              postfix="_1_se.html",
+              tabset ="FullPos surface norms",
+              fpgpnorms="SURFTEMPERATURE /METCOOP_ave",
+              showzero="no")
+    }   
       
     ldata <- compact(lapply(make_date_list(start=input$start, end=input$end,
                             by=input$by, path=input$path, prefix=input$prefix, 
@@ -666,16 +678,19 @@ Read html logfile produced by Harmonie-arome into memory as text. Files can be l
 #Read html logfile produced by Harmonie-arome into memory as text. Files can be local paths or urls. Not used, can be handy for debugging etc.
 #logfile <- '/home/forteliu/Bologna/hm_home/cy46_NYLAND750/archive/log/HM_Date_2022081500.html'
 if (FALSE) {
-logfile <- "https://metcoop.smhi.se/monitoring/msms/data/meps/HM_Date_2023030912_1_se.html"
+logfile <- "https://metcoop.smhi.se/monitoring/msms/data/meps2_preop/HM_Date_2025061415_1_se.html"
 HM_DATE <- unlist( strsplit(html_text(read_html(x = logfile, encoding="UTF-8", options="HUGE")), '\n'))
-specimen <- get_cost_functions(HM_DATE)
+#specimen <- get_cost_functions(HM_DATE)
+specimen <- get_spectral_norms(HM_DATE)
+specimen <- get_grid_point_norms(HM_DATE)
+specimen <- get_fpgp_norms(HM_DATE)
 }
 ```
 
 Save the tibbles into their respective rds files (not in use)
 
 ```{r}
-#Save the tibbles into their respective rds files (this is not in use)
+
 #RDS_dir <- "/home/forteliu/Datafiles/RDS/"
 #object <- c(meta, gpnorms, spnorms)
 #saveRDS(gpnorms, paste(RDS_dir, basename(logfile), ".gpnorms.rds",sep=""))

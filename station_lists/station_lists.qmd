@@ -1,5 +1,6 @@
 ---
 title: "station_lists"
+---filter
 ---
 
 ## Quarto
@@ -13,6 +14,8 @@ Quarto enables you to weave together content and executable code into a finished
 library(harpIO)
 library(sp)
 library(here)
+library(dplyr)
+library(stringr)
 
 ```
 
@@ -51,7 +54,7 @@ monitor_station_list = function(station_list, this_list){
 
 master_list <- function(){
   read.table(
-    "https://www.weathergraphics.com/identifiers/master-location-identifier-database-202401_standard.csv", 
+    "https://www.weathergraphics.com/identifiers/master-location-identifier-database-202507_standard.csv", 
     skip = 5, 
     sep = ",",
     quote= c('"',"'"),
@@ -68,4 +71,21 @@ master_list <- function(){
 #csv <-  "master-location-identifier-database-202401_standard.csv"
 
 master_list()|> filter(country == "Finland") -> buf
+```
+
+```{r}
+fmisids <-  c("Uto",";59.784190;21.367637;100908",
+              "Helsinki Kumpula",";60.203632;24.960721;101004",
+"Helsinki Vantaa",";60.3267;24.95675;100968",
+"Vantaa",";60.3267;24.95675;100968",
+"Jokioinen",";60.81397222;23.49825;101104",
+"Jyvaskyla",";62.39758473;25.67086659;101339",
+"Kuopio",";62.892495;27.633796;101586",
+"Sotkamo",";64.111972;28.336389;101756",
+"Sodankyla",";67.36663;26.62901;101932",
+"Utsjoki",";69.756241;27.006200;102035")
+
+radstats <- master_list() %>%
+  filter(sapply(station_name, function(x) any(str_detect(x, fmisids))))
+
 ```

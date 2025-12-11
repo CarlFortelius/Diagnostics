@@ -9,6 +9,7 @@ format:
 server: shiny
 editor: visual
 author: Carl Fortelius, v0 March 2023
+version: June 2025
 ---
 
 ## Quarto
@@ -25,18 +26,66 @@ Here load needed libraries
 
 ```{r initialize}
 #library(harp)
-library(tidyverse)
-library(XML)
-library(rvest)
-library(hms)
-library(stringr)        
-library(httr)
-library(dplyr)
-library(ggplot2)
-library(viridis)
-library(tidyr)
-library(shiny)
-library(shinyFiles)
+
+# List of required packages
+required_packages <- c(
+"tidyverse",
+"XML",
+"rvest",
+"hms",
+"stringr",        
+"httr",
+"dplyr",
+"ggplot2",
+"viridis",
+"tidyr",
+"shiny",
+"shinyFiles",
+"shinythemes"
+)
+# Function to check and install missing packages
+install_missing_packages <- function(packages) {
+  # Get list of installed packages
+  installed_packages <- rownames(installed.packages())
+  
+  # Find missing packages
+  missing_packages <- packages[!packages %in% installed_packages]
+  
+  if (length(missing_packages) > 0) {
+    cat("Installing missing packages:", paste(missing_packages, collapse = ", "), "\n")
+    
+    # Install missing packages
+    install.packages(missing_packages, dependencies = TRUE)
+    
+    cat("Installation complete!\n")
+  } else {
+    cat("All required packages are already installed.\n")
+  }
+}
+
+# Run the installation check
+install_missing_packages(required_packages)
+
+# Function to load all required packages
+load_packages <- function(packages) {
+  cat("Loading packages...\n")
+  
+  for (pkg in packages) {
+    if (require(pkg, character.only = TRUE, quietly = TRUE)) {
+      cat("✓", pkg, "loaded successfully\n")
+    } else {
+      cat("✗ Failed to load", pkg, "\n")
+    }
+  }
+  
+  cat("Package loading complete!\n")
+}
+
+# Load all required packages
+load_packages(required_packages)
+
+#library(harp)
+
 #library(shinythemes)
 
 ```
@@ -81,12 +130,19 @@ ui <- fluidPage(
             selectInput("gpnorms", "Grid point norm", 
                     choices = c(NULL))
          ), 
+         tabPanel("Surface FullPos norms",
+            selectInput("fpgpnorms", "FullPos surface norm", 
+                    choices = c(NULL))
+         ), 
       ), #tabset panel
    
       selectInput("showzero", "Show zero Y", 
-                    choices = c("yes","no") ,selected="no"),
+                    choices = c("yes","no") ),
       
-     # actionButton("go", "Plot"),
+      selectInput("incremental", "Show increments of norms", 
+                    choices = c("no","yes") ),
+      
+      actionButton("go", "Plot"),
  
     ), #sidebarPanel
     mainPanel(
@@ -113,32 +169,53 @@ v <- reactiveValues(doPlot = FALSE,
     } else {
       numfiles <<- nrow(infile)
     }
-    Data <- lapply(input$file$datapath, read_one_file) 
-
+    path_to_data <- input$file$datapath
+    Data <- lapply(path_to_data, read_one_file) 
+#    if (length(input$file$datapath) == 1) {
+#      Data <- list(Data)  # Wrap single result in another list
+#    }
       updateSelectInput(session, "spnorms",
            choices = attr( Data[[1]]$spectral,"names")) # current selection
 
       updateSelectInput(session, "gpnorms",
            choices = attr( Data[[1]]$gridpoint,"names")) # current selection
-      
+
+      updateSelectInput(session, "fpgpnorms",
+           choices = attr( Data[[1]]$fullposgp,"names")) # current selection
+
 #          }
 
  observeEvent(input$tabset, {   
    output$plot <- renderPlot({
+#    if (input$tabset == "Spectral norms" | 
+#        input$tabset == "Grid point norms" ){
 
        if (input$tabset == "Spectral norms") {
         specimen <- "spectral"
         Y <- input$spnorms
+        time_index <- "NSTEP"
       } else if (input$tabset == "Grid point norms"){
         specimen <- "gridpoint"
         Y <- input$gpnorms
+        time_index <- "NSTEP"
+      }  else if (input$tabset == "Surface FullPos norms"){
+        specimen <- "fullposgp"
+        Y <- input$fpgpnorms
+        time_index <- "STEP"
       } 
- 
-     lista <- lapply(Data, function(x) tibble(id=x$meta$prefix, NSTEP=x[[specimen]]$NSTEP, 
-                                         NORM=x[[specimen]][[Y]]))
-     TOC <- sapply(Data, function(x) paste(x$meta$start,"-",x$meta$end,
-                                            " by ", x$meta$by," hours",": ",
+     ylab <- Y
+     lista <- lapply(Data, function(x) tibble(id=x$meta$prefix, 
+                                        NSTEP=x[[specimen]][[time_index]], 
+                                        NORM=x[[specimen]][[Y]]
+                                         ))
+    if (input$incremental=="yes"){
+      ylab <- paste("Incremental",Y,sep=" ")
+      lista <- lapply(lista, function(x) x |> mutate(NORM=c(NA, diff(NORM)))
+             )}
 
+     
+     TOC <- sapply(Data, function(x) paste(x$meta$start,"-",x$meta$end,
+                                           " by ", x$meta$by," hours",": ",
                                            basename(x$meta$path), " \n",sep="") )
 
      # Define color palette without yellow
@@ -149,22 +226,14 @@ v <- reactiveValues(doPlot = FALSE,
      P <- ggplot(bind_rows(lista, .id="df"), aes(NSTEP, NORM, colour=df)) + 
        scale_color_manual(values = color_palette)  +
   geom_line() +
-  ylab(Y) + 
-       ggtitle(paste(TOC,collapse=""))
+  ylab(ylab) + 
+  xlab(time_index) +
+  ggtitle(paste(TOC,collapse=""))
   
        if (input$showzero =="yes"){
           P<- P + expand_limits(x = 0, y = 0)}
-
+ 
 P
-   
-#       p <- ggplot() + 
-#        geom_line(data = specimen, aes(x = NSTEP, y = .data[[Y]]), 
-#                                       colour = linecolour) +
-#        ylab(Y) + 
-#        ggtitle(paste( input$path,input$prefix,"yyyymmddhh",input$postfix,"\n",
-#                  input$start,"-",input$end," by ",input$by," hours", sep=""))
-
-#       P
   }) #RenderPlot
 }) # observe event input$tabset
  }) # observe event input$file

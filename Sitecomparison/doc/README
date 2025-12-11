@@ -1,0 +1,38 @@
+The repository SiteComparison contains utilities for accessing 
+and displaying archived historical data from the "FMI mast verification"
+activity (https://fminwp.fmi.fi). In the mast verification surface fluxes and
+surface near state variables at selected sites are compared to forecasts 
+from  selected N WP-systems.
+
+Files:
+
+bash/Copy_data_from_hirlam.bash
+A shell script to fetch data from the archive on hirlam.org, and organise them
+according to origin and time-period. The process is controlled by editing 
+variables in the script. The default periods are DJF, MAM, JJA, SON
+for respective years. Empty files and files recognised as faulty are removed 
+in the process.
+
+bash/linker.bash
+This script can be used for organising in different ways the data that was fetched by 
+bash/Copy_data_from_hirlam.bash. Useful e.g. to create long time series. The organising
+is achieved by making symbolic links to the fetched data.
+
+R/Read_obs_and_fc.qmd
+A quarto document that generates harp forcast objects corresponding to variables
+that were fetched, and stores them in rds-files for display using a shiny-app.
+Controlled by configuration files conf/config_atos.R and conf/conf/config_atos.yml
+
+
+shinyapp/Visualise.R
+Opens a shiny app granting access to rds-files created by R/Read_obs_and_fc.qmd
+
+conf/config_atos.R
+Sets the units, thresholds, and definitions of parameters
+
+conf/config_atos.yml
+Defines paths to input and output. Defines metadata and lists parameters for masts
+and models. 
+
+
+
